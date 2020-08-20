@@ -332,8 +332,10 @@ def main():
 
     window = torch.hann_window(opt.n_fft).to(device)
     def stft(x): return torch.stft(x, opt.n_fft, opt.hop_length, window=window)
-    istft = ISTFT(opt.n_fft, opt.hop_length, window='hanning').to(device)
-    # istft = lambda x: torch.istft(x, opt.n_fft, opt.hop_length, window=window) # torch master branch can use istft
+    # istft = ISTFT(opt.n_fft, opt.hop_length, window='hanning').to(device)
+
+    def istft(x): return torch.istft(x, opt.n_fft, opt.hop_length,
+                                     window=window)
 
     optimizer = ScheduledOptim(
         optim.Adam(model.parameters(), betas=(0.9, 0.98), eps=1e-09),
