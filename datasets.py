@@ -1,12 +1,15 @@
 import numpy as np
 from tqdm import tqdm
 import librosa
-import os, csv
+import os
+import csv
 import torch
 from torch.utils import data
 
 # Reference
 # DATA LOADING - LOAD FILE LISTS
+
+
 def load_data_list(folder='./dataset', setname='train'):
     assert(setname in ['train', 'val'])
 
@@ -18,19 +21,21 @@ def load_data_list(folder='./dataset', setname='train'):
     dataset['outnames'] = []
     dataset['shortnames'] = []
 
-    filelist = os.listdir("%s_noisy"%(foldername))
+    filelist = os.listdir("%s_noisy" % (foldername))
     filelist = [f for f in filelist if f.endswith(".wav")]
     for i in tqdm(filelist):
-        dataset['innames'].append("%s_noisy/%s"%(foldername,i))
-        dataset['outnames'].append("%s_clean/%s"%(foldername,i))
-        dataset['shortnames'].append("%s"%(i))
+        dataset['innames'].append("%s_noisy/%s" % (foldername, i))
+        dataset['outnames'].append("%s_clean/%s" % (foldername, i))
+        dataset['shortnames'].append("%s" % (i))
 
     return dataset
 
 # DATA LOADING - LOAD FILE DATA
+
+
 def load_data(dataset):
 
-    dataset['inaudio']  = [None]*len(dataset['innames'])
+    dataset['inaudio'] = [None]*len(dataset['innames'])
     dataset['outaudio'] = [None]*len(dataset['outnames'])
 
     for id in tqdm(range(len(dataset['innames']))):
@@ -39,12 +44,13 @@ def load_data(dataset):
             inputData, sr = librosa.load(dataset['innames'][id], sr=None)
             outputData, sr = librosa.load(dataset['outnames'][id], sr=None)
 
-            shape = np.shape(inputData)
+            in_shape = np.shape(inputData)
 
-            dataset['inaudio'][id]  = np.float32(inputData)
+            dataset['inaudio'][id] = np.float32(inputData)
             dataset['outaudio'][id] = np.float32(outputData)
 
     return dataset
+
 
 class AudioDataset(data.Dataset):
     """
@@ -58,8 +64,10 @@ class AudioDataset(data.Dataset):
         self.file_names = dataset['innames']
 
     def __getitem__(self, idx):
-        mixed = torch.from_numpy(self.dataset['inaudio'][idx]).type(torch.FloatTensor)
-        clean = torch.from_numpy(self.dataset['outaudio'][idx]).type(torch.FloatTensor)
+        mixed = torch.from_numpy(
+            self.dataset['inaudio'][idx]).type(torch.FloatTensor)
+        clean = torch.from_numpy(
+            self.dataset['outaudio'][idx]).type(torch.FloatTensor)
 
         return mixed, clean
 
@@ -83,4 +91,3 @@ class AudioDataset(data.Dataset):
 
         batch = [x, y, seq_lens]
         return batch
-
