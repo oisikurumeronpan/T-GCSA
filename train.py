@@ -291,9 +291,9 @@ def main():
     train_dataset = AudioDataset(data_type='train')
     test_dataset = AudioDataset(data_type='val')
     train_data_loader = DataLoader(dataset=train_dataset, batch_size=opt.batch_size,
-            collate_fn=train_dataset.collate, shuffle=True, num_workers=4)
+            collate_fn=train_dataset.collate, shuffle=True, num_workers=0)
     test_data_loader = DataLoader(dataset=test_dataset, batch_size=opt.batch_size,
-            collate_fn=test_dataset.collate, shuffle=False, num_workers=4)
+            collate_fn=test_dataset.collate, shuffle=False, num_workers=0)
 
     model = Transformer(
         emb_src_trg_weight_sharing=opt.embs_share_weight,
