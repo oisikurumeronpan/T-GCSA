@@ -70,13 +70,12 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
         mask_r, mask_i = model(
             mixed_r, mixed_i, calc_dwm(mixed_r.shape[2]).to(device))
 
-        print(mixed_r.shape, mask_r.shape)
-
         output_r, output_i = mixed_r*mask_r - mixed_i * \
             mask_i, mixed_r*mask_i + mixed_i*mask_r
         output = torch.squeeze(istft(output_r, output_i, mixed.size(1)), dim=1)
 
         # backward and update parameters
+        print(mixed.shape, clean.shape, output.shape)
         loss = wSDRLoss(mixed, clean, output)
         loss.backward()
         optimizer.step_and_update_lr()
