@@ -45,9 +45,6 @@ def load_data(dataset):
             outputData, sr = librosa.load(dataset['outnames'][id], sr=None)
 
             in_shape = np.shape(inputData)
-            out_shape = np.shape(outputData)
-            if in_shape != out_shape:
-                print(in_shape, out_shape)
 
             dataset['inaudio'][id] = np.float32(inputData)
             dataset['outaudio'][id] = np.float32(outputData)
