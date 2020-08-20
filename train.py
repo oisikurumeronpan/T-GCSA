@@ -80,7 +80,7 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
 
         print(mixed_stft.shape, recombined.shape)
 
-        output = torch.squeeze(istft(recombined, mixed.shape[2]), dim=1)
+        output = torch.squeeze(istft(recombined, mixed.shape[1]), dim=1)
 
         # backward and update parameters
         print(mixed.shape, clean.shape, output.shape)
@@ -120,7 +120,7 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
                 output_i = output_i.unsqueeze(-1)
 
             recombined = torch.cat([output_r, output_i], dim=-1)
-            output = torch.squeeze(istft(recombined, mixed.shape[2]), dim=1)
+            output = torch.squeeze(istft(recombined, mixed.shape[1]), dim=1)
 
             # backward and update parameters
             loss = wSDRLoss(mixed, clean, output)
