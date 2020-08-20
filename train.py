@@ -74,10 +74,10 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
             mask_i, mixed_r*mask_i + mixed_i*mask_r
 
         if (output_r.dim() == 2):
-            output_r = output_r.unsqueeze(0)
-            output_i = output_i.unsqueeze(0)
+            output_r = output_r.unsqueeze(3)
+            output_i = output_i.unsqueeze(3)
 
-        recombined = torch.cat([output_r, output_i], dim=1)
+        recombined = torch.cat([output_r, output_i], dim=3)
 
         print(mixed_stft.shape, recombined.shape)
 
