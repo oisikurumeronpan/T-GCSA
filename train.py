@@ -78,12 +78,9 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
 
         recombined = torch.cat([output_r, output_i], dim=-1)
 
-        print(mixed_stft.shape, recombined.shape)
-
         output = torch.squeeze(istft(recombined, mixed.shape[1]), dim=1)
 
         # backward and update parameters
-        print(mixed.shape, clean.shape, output.shape)
         loss = wSDRLoss(mixed, clean, output)
         loss.backward()
         optimizer.step_and_update_lr()
