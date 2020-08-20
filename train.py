@@ -106,8 +106,13 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
 
             output_r, output_i = mixed_r*mask_r - mixed_i * \
                 mask_i, mixed_r*mask_i + mixed_i*mask_r
-            output = torch.squeeze(
-                istft(output_r, output_i, mixed.size(1)), dim=1)
+
+            if (output_r.dim() == 2):
+                output_r = output_r.unsqueeze(0)
+                output_i = output_i.unsqueeze(0)
+
+            recombined = torch.cat([output_r, output_i], dim=1)
+            output = torch.squeeze(istft(recombined), dim=1)
 
             # backward and update parameters
             loss = wSDRLoss(mixed, clean, output)
