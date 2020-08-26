@@ -72,13 +72,7 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
 
         output_r, output_i = mixed_r*mask_r - mixed_i * \
             mask_i, mixed_r*mask_i + mixed_i*mask_r
-
-        output_r = output_r.unsqueeze(-1)
-        output_i = output_i.unsqueeze(-1)
-
-        recombined = torch.cat([output_r, output_i], dim=-1)
-
-        output = torch.squeeze(istft(recombined, mixed.shape[1]), dim=1)
+        output = torch.squeeze(istft(output_r, output_i, mixed.size(1)), dim=1)
 
         # backward and update parameters
         loss = wSDRLoss(mixed, clean, output)
@@ -111,13 +105,8 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
 
             output_r, output_i = mixed_r*mask_r - mixed_i * \
                 mask_i, mixed_r*mask_i + mixed_i*mask_r
-
-            if (output_r.dim() == 2):
-                output_r = output_r.unsqueeze(-1)
-                output_i = output_i.unsqueeze(-1)
-
-            recombined = torch.cat([output_r, output_i], dim=-1)
-            output = torch.squeeze(istft(recombined, mixed.shape[1]), dim=1)
+            output = torch.squeeze(
+                istft(output_r, output_i, mixed.size(1)), dim=1)
 
             # backward and update parameters
             loss = wSDRLoss(mixed, clean, output)
@@ -312,12 +301,6 @@ def main():
     if not opt.log and not opt.save_model:
         print('No experiment result will be saved.')
 
-    if opt.batch_size < 2048 and opt.n_warmup_steps <= 4000:
-        print('[Warning] The warmup steps may be not enough.\n'
-              '(sz_b, warmup) = (2048, 4000) is the official setting.\n'
-              'Using smaller batch w/o longer warmup may cause '
-              'the warmup stage ends with only little data trained.')
-
     device = torch.device('cuda' if opt.cuda else 'cpu')
 
     #========= Loading Dataset =========#
@@ -325,9 +308,9 @@ def main():
     train_dataset = AudioDataset(data_type='train')
     test_dataset = AudioDataset(data_type='val')
     train_data_loader = DataLoader(dataset=train_dataset, batch_size=opt.batch_size,
-                                   collate_fn=train_dataset.collate, shuffle=True, num_workers=0)
+                                   collate_fn=train_dataset.collate, shuffle=True, num_workers=4)
     test_data_loader = DataLoader(dataset=test_dataset, batch_size=opt.batch_size,
-                                  collate_fn=test_dataset.collate, shuffle=False, num_workers=0)
+                                  collate_fn=test_dataset.collate, shuffle=False, num_workers=4)
 
     model = Transformer(
         emb_src_trg_weight_sharing=opt.embs_share_weight,
@@ -342,13 +325,8 @@ def main():
 
     window = torch.hann_window(opt.n_fft).to(device)
     def stft(x): return torch.stft(x, opt.n_fft, opt.hop_length, window=window)
-    # istft = ISTFT(opt.n_fft, opt.hop_length, window='hanning').to(device)
-
-    def istft(x, length): return torch.istft(x,
-                                             opt.n_fft,
-                                             opt.hop_length,
-                                             length=length,
-                                             window=window)
+    istft = ISTFT(opt.n_fft, opt.hop_length, window='hanning').to(device)
+    # istft = lambda x: torch.istft(x, opt.n_fft, opt.hop_length, window=window) # torch master branch can use istft
 
     optimizer = ScheduledOptim(
         optim.Adam(model.parameters(), betas=(0.9, 0.98), eps=1e-09),

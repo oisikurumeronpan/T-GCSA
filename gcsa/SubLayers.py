@@ -6,6 +6,7 @@ from gcsa.Modules import ScaledDotProductAttention
 
 __author__ = "@oisikurumeronpan"
 
+
 class MultiHeadAttention(nn.Module):
     ''' Multi-Head Attention module '''
 
@@ -30,11 +31,11 @@ class MultiHeadAttention(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.layer_norm = nn.LayerNorm(d_model, eps=1e-6)
 
-
     def forward(self, q_r, q_i, k_r, k_i, v_r, v_i, dwm):
 
         d_k, d_v, n_head = self.d_k, self.d_v, self.n_head
-        sz_b, len_q, len_k, len_v = q_r.size(0), q_r.size(1), k_r.size(1), v_r.size(1)
+        sz_b, len_q, len_k, len_v = q_r.size(
+            0), q_r.size(1), k_r.size(1), v_r.size(1)
 
         residual_r = q_r
         residual_i = q_i
@@ -49,10 +50,13 @@ class MultiHeadAttention(nn.Module):
         v_i = self.w_vis(v_i).view(sz_b, len_v, n_head, d_v)
 
         # Transpose for attention dot product: b x n x lq x dv
-        q_r, k_r, v_r = q_r.transpose(1, 2), k_r.transpose(1, 2), v_r.transpose(1, 2)
-        q_i, k_i, v_i = q_i.transpose(1, 2), k_i.transpose(1, 2), v_i.transpose(1, 2)
+        q_r, k_r, v_r = q_r.transpose(
+            1, 2), k_r.transpose(1, 2), v_r.transpose(1, 2)
+        q_i, k_i, v_i = q_i.transpose(
+            1, 2), k_i.transpose(1, 2), v_i.transpose(1, 2)
 
-        q_r, q_i, attn_r, attn_i = self.attention(q_r, q_i, k_r, k_i, v_r, v_i, dwm)
+        q_r, q_i, attn_r, attn_i = self.attention(
+            q_r, q_i, k_r, k_i, v_r, v_i, dwm)
 
         # Transpose to move the head dimension back: b x lq x n x dv
         # Combine the last two dimensions to concatenate all the heads together: b x lq x (n*dv)
@@ -74,10 +78,10 @@ class PositionwiseFeedForward(nn.Module):
 
     def __init__(self, d_in, d_hid, dropout=0.1):
         super().__init__()
-        self.w_1r = nn.Linear(d_in, d_hid) # position-wise
-        self.w_1i = nn.Linear(d_in, d_hid) # position-wise
-        self.w_2r = nn.Linear(d_hid, d_in) # position-wise
-        self.w_2i = nn.Linear(d_hid, d_in) # position-wise
+        self.w_1r = nn.Linear(d_in, d_hid)  # position-wise
+        self.w_1i = nn.Linear(d_in, d_hid)  # position-wise
+        self.w_2r = nn.Linear(d_hid, d_in)  # position-wise
+        self.w_2i = nn.Linear(d_hid, d_in)  # position-wise
         self.layer_norm = nn.LayerNorm(d_in, eps=1e-6)
         self.dropout = nn.Dropout(dropout)
 
