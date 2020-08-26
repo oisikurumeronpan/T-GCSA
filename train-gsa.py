@@ -15,8 +15,8 @@ from scipy import signal
 import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from datasets import AudioDataset
-from gcsa.Models import Transformer, ISTFT
-from gcsa.Optim import ScheduledOptim
+from gsa.Models import Transformer, ISTFT
+from gsa.Optim import ScheduledOptim
 
 from tqdm import tqdm
 
@@ -67,16 +67,14 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
 
         # forward
         optimizer.zero_grad()
-        mask_r, mask_i = model(
-            mixed_r, mixed_i, calc_dwm(mixed_r.shape[2]).to(device))
+        mask_r = model(
+            mixed_r, calc_dwm(mixed_r.shape[2]).to(device))
 
-        output_r, output_i = mixed_r*mask_r - mixed_i * \
-            mask_i, mixed_r*mask_i + mixed_i*mask_r
+        output_r = mixed_r*mask_r
 
         output_r = output_r.unsqueeze(-1)
-        output_i = output_i.unsqueeze(-1)
 
-        recombined = torch.cat([output_r, output_i], dim=-1)
+        recombined = torch.cat([output_r, mixed_i], dim=-1)
 
         output = torch.squeeze(istft(recombined, mixed.shape[1]), dim=1)
 
@@ -106,17 +104,16 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
             mixed_r, mixed_i = mixed_stft[..., 0], mixed_stft[..., 1]
 
             # forward
-            mask_r, mask_i = model(
-                mixed_r, mixed_i, calc_dwm(mixed_r.shape[2]).to(device))
+            optimizer.zero_grad()
+            mask_r = model(
+                mixed_r, calc_dwm(mixed_r.shape[2]).to(device))
 
-            output_r, output_i = mixed_r*mask_r - mixed_i * \
-                mask_i, mixed_r*mask_i + mixed_i*mask_r
+            output_r = mixed_r*mask_r
 
-            if (output_r.dim() == 2):
-                output_r = output_r.unsqueeze(-1)
-                output_i = output_i.unsqueeze(-1)
+            output_r = output_r.unsqueeze(-1)
 
-            recombined = torch.cat([output_r, output_i], dim=-1)
+            recombined = torch.cat([output_r, mixed_i], dim=-1)
+
             output = torch.squeeze(istft(recombined, mixed.shape[1]), dim=1)
 
             # backward and update parameters
@@ -308,6 +305,15 @@ def main():
     opt = parser.parse_args()
     opt.cuda = not opt.no_cuda
     opt.d_word_vec = opt.d_model
+
+    if not opt.log and not opt.save_model:
+        print('No experiment result will be saved.')
+
+    if opt.batch_size < 2048 and opt.n_warmup_steps <= 4000:
+        print('[Warning] The warmup steps may be not enough.\n'
+              '(sz_b, warmup) = (2048, 4000) is the official setting.\n'
+              'Using smaller batch w/o longer warmup may cause '
+              'the warmup stage ends with only little data trained.')
 
     device = torch.device('cuda' if opt.cuda else 'cpu')
 
