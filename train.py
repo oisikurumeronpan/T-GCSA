@@ -306,6 +306,7 @@ def main():
 
     parser.add_argument('-n_fft', type=int, default=1024)
     parser.add_argument('-hop_length', type=int, default=512)
+    parser.add_argument('-max_length', type=int, default=100000)
 
     opt = parser.parse_args()
     opt.cuda = not opt.no_cuda
@@ -324,7 +325,7 @@ def main():
 
     #========= Loading Dataset =========#
 
-    train_dataset = AudioDataset(data_type='train')
+    train_dataset = AudioDataset(data_type='train', max_length=opt.max_length)
     test_dataset = AudioDataset(data_type='val')
     train_data_loader = DataLoader(dataset=train_dataset, batch_size=opt.batch_size,
                                    collate_fn=train_dataset.collate, shuffle=True, num_workers=0)
