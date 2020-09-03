@@ -65,6 +65,8 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
         mixed_stft = stft(mixed)
         mixed_r, mixed_i = mixed_stft[..., 0], mixed_stft[..., 1]
 
+        print(mixed_r.shape)
+
         # forward
         optimizer.zero_grad()
         mask_r, mask_i = model(

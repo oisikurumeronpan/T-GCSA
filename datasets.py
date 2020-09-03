@@ -33,7 +33,7 @@ def load_data_list(folder='./dataset', setname='train'):
 # DATA LOADING - LOAD FILE DATA
 
 
-def load_data(dataset):
+def load_data(dataset, max_length):
 
     dataset['inaudio'] = [None]*len(dataset['innames'])
     dataset['outaudio'] = [None]*len(dataset['outnames'])
@@ -45,6 +45,9 @@ def load_data(dataset):
             outputData, sr = librosa.load(dataset['outnames'][id], sr=None)
 
             in_shape = np.shape(inputData)
+            if (in_shape[0] > max_length):
+                inputData = inputData[0:max_length]
+                outputData = outputData[0:max_length]
 
             dataset['inaudio'][id] = np.float32(inputData)
             dataset['outaudio'][id] = np.float32(outputData)
@@ -57,9 +60,9 @@ class AudioDataset(data.Dataset):
     Audio sample reader.
     """
 
-    def __init__(self, data_type):
+    def __init__(self, data_type, max_length=100000):
         dataset = load_data_list(setname=data_type)
-        self.dataset = load_data(dataset)
+        self.dataset = load_data(dataset, max_length)
 
         self.file_names = dataset['innames']
 
