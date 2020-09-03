@@ -112,9 +112,8 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
             output_r, output_i = mixed_r*mask_r - mixed_i * \
                 mask_i, mixed_r*mask_i + mixed_i*mask_r
 
-            if (output_r.dim() == 2):
-                output_r = output_r.unsqueeze(-1)
-                output_i = output_i.unsqueeze(-1)
+            output_r = output_r.unsqueeze(-1)
+            output_i = output_i.unsqueeze(-1)
 
             recombined = torch.cat([output_r, output_i], dim=-1)
             output = torch.squeeze(istft(recombined, mixed.shape[1]), dim=1)
