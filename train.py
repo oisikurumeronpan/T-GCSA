@@ -65,8 +65,6 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
         mixed_stft = stft(mixed)
         mixed_r, mixed_i = mixed_stft[..., 0], mixed_stft[..., 1]
 
-        print(mixed_r.shape)
-
         # forward
         optimizer.zero_grad()
         mask_r, mask_i = model(
@@ -311,15 +309,6 @@ def main():
     opt = parser.parse_args()
     opt.cuda = not opt.no_cuda
     opt.d_word_vec = opt.d_model
-
-    if not opt.log and not opt.save_model:
-        print('No experiment result will be saved.')
-
-    if opt.batch_size < 2048 and opt.n_warmup_steps <= 4000:
-        print('[Warning] The warmup steps may be not enough.\n'
-              '(sz_b, warmup) = (2048, 4000) is the official setting.\n'
-              'Using smaller batch w/o longer warmup may cause '
-              'the warmup stage ends with only little data trained.')
 
     device = torch.device('cuda' if opt.cuda else 'cpu')
 
