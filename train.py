@@ -129,7 +129,7 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
             bs = validation_data.__len__()
 
             for i in range(bs):
-                avg_pesq += pesq(clean[i], output[i], 48000)
+                avg_pesq += pesq(clean[i].cpu(), output[i].cpu(), 48000)
 
             avg_pesq = avg_pesq / bs
 
