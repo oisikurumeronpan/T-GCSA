@@ -129,7 +129,7 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
             bs = mixed.shape[0]
 
             for i in range(bs):
-                avg_pesq += pesq(clean[i].cpu(), output[i].cpu(), 48000)
+                avg_pesq += pesq(clean[i].cpu(), output[i].cpu(), 16000)
 
             avg_pesq = avg_pesq / bs
 
