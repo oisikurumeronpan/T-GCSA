@@ -18,6 +18,7 @@ from datasets import AudioDataset
 from gcsa.Models import Transformer, ISTFT
 from gcsa.Optim import ScheduledOptim
 from collections import OrderedDict
+from pypesq import pesq
 
 from tqdm import tqdm
 
@@ -99,6 +100,7 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
 
     model.eval()
     total_loss = 0
+    avg_pesq = 0
 
     with torch.no_grad():
         for batch in tqdm(validation_data):
@@ -124,10 +126,17 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
             # backward and update parameters
             loss = wSDRLoss(mixed, clean, output)
 
+            bs = validation_data.__len__()
+
+            for i in range(bs):
+                avg_pesq += pesq(clean[i], output[i], 48000)
+
+            avg_pesq = avg_pesq / bs
+
             # note keeping
             total_loss += loss.item()
 
-    return total_loss
+    return total_loss, avg_pesq
 
 
 def train(model, stft, istft, training_data, validation_data, optimizer, device, opt):
@@ -160,12 +169,15 @@ def train(model, stft, istft, training_data, validation_data, optimizer, device,
         start = time.time()
         train_loss = train_epoch(
             model, stft, istft, training_data, optimizer, opt, device, smoothing=opt.label_smoothing)
-        print_performances('Training', train_loss, start)
+        print_performances('Training', train_loss /
+                           training_data.__len__(), start)
 
         start = time.time()
-        valid_loss = eval_epoch(
+        valid_loss, avg_pesq = eval_epoch(
             model, stft, istft, validation_data, device, opt)
-        print_performances('Validation', valid_loss, start)
+        print_performances('Validation', valid_loss /
+                           validation_data.__len__(), start,)
+        print('pesq: ', avg_pesq)
 
         valid_losses += [valid_loss]
 
