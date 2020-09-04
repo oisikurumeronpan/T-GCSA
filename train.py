@@ -17,6 +17,7 @@ from torch.utils.data import Dataset, DataLoader
 from datasets import AudioDataset
 from gcsa.Models import Transformer, ISTFT
 from gcsa.Optim import ScheduledOptim
+from collections import OrderedDict
 
 from tqdm import tqdm
 
@@ -58,35 +59,37 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
     model.train()
     total_loss = 0
 
-    for batch in tqdm(training_data):
-        # prepare data
-        mixed, clean, seq_len = map(lambda x: x.to(device), batch)
+    with tqdm(training_data) as pbar:
+        for _, batch in enumerate(pbar):
+            # prepare data
+            mixed, clean, _ = map(lambda x: x.to(device), batch)
 
-        mixed_stft = stft(mixed)
-        mixed_r, mixed_i = mixed_stft[..., 0], mixed_stft[..., 1]
+            mixed_stft = stft(mixed)
+            mixed_r, mixed_i = mixed_stft[..., 0], mixed_stft[..., 1]
 
-        # forward
-        optimizer.zero_grad()
-        mask_r, mask_i = model(
-            mixed_r, mixed_i, calc_dwm(mixed_r.shape[2]).to(device))
+            # forward
+            optimizer.zero_grad()
+            mask_r, mask_i = model(
+                mixed_r, mixed_i, calc_dwm(mixed_r.shape[2]).to(device))
 
-        output_r, output_i = mixed_r*mask_r - mixed_i * \
-            mask_i, mixed_r*mask_i + mixed_i*mask_r
+            output_r, output_i = mixed_r*mask_r - mixed_i * \
+                mask_i, mixed_r*mask_i + mixed_i*mask_r
 
-        output_r = output_r.unsqueeze(-1)
-        output_i = output_i.unsqueeze(-1)
+            output_r = output_r.unsqueeze(-1)
+            output_i = output_i.unsqueeze(-1)
 
-        recombined = torch.cat([output_r, output_i], dim=-1)
+            recombined = torch.cat([output_r, output_i], dim=-1)
 
-        output = torch.squeeze(istft(recombined, mixed.shape[1]), dim=1)
+            output = torch.squeeze(istft(recombined, mixed.shape[1]), dim=1)
 
-        # backward and update parameters
-        loss = wSDRLoss(mixed, clean, output)
-        loss.backward()
-        optimizer.step_and_update_lr()
+            # backward and update parameters
+            loss = wSDRLoss(mixed, clean, output)
+            loss.backward()
+            optimizer.step_and_update_lr()
 
-        # note keeping
-        total_loss += loss.item()
+            # note keeping
+            total_loss += loss.item()
+            pbar.set_postfix(OrderedDict(loss=math.exp(loss.item())))
 
     return total_loss
 
@@ -100,7 +103,7 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
     with torch.no_grad():
         for batch in tqdm(validation_data):
             # prepare data
-            mixed, clean, seq_len = map(lambda x: x.to(device), batch)
+            mixed, clean, _ = map(lambda x: x.to(device), batch)
 
             mixed_stft = stft(mixed)
             mixed_r, mixed_i = mixed_stft[..., 0], mixed_stft[..., 1]
@@ -112,9 +115,8 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
             output_r, output_i = mixed_r*mask_r - mixed_i * \
                 mask_i, mixed_r*mask_i + mixed_i*mask_r
 
-            if (output_r.dim() == 2):
-                output_r = output_r.unsqueeze(-1)
-                output_i = output_i.unsqueeze(-1)
+            output_r = output_r.unsqueeze(-1)
+            output_i = output_i.unsqueeze(-1)
 
             recombined = torch.cat([output_r, output_i], dim=-1)
             output = torch.squeeze(istft(recombined, mixed.shape[1]), dim=1)
@@ -191,44 +193,9 @@ def train(model, stft, istft, training_data, validation_data, optimizer, device,
                     ppl=math.exp(min(valid_loss, 100))))
 
 
-def test(args, model, device, loader):
-    model.eval()
-    test_loss = 0
-    with torch.no_grad():
-        samples = next(loader.__iter__())
-        input_img, teach_img = samples['input_img'].to(
-            device), samples['teach_img'].to(device)
-        output_img = model(input_img)
-        teach_img, output_img = adjust(teach_img, output_img)
-        test_loss = 10*torch.log10(1./torch.mean((teach_img-output_img)**2))
-
-    print('\nPSNR: {:.4f}\n'.format(test_loss))
-
-
-def visualize(args, model, device, loader, epoch, f, t):
-    model.eval()
-    test_loss = 0
-    with torch.no_grad():
-        samples = next(loader.__iter__())
-        input_img, teach_img = samples['input_img'].to(
-            device), samples['teach_img'].to(device)
-
-        output_img = model(input_img)
-
-        output_img = output_img.cpu()
-
-        plt.figure()
-        plt.pcolormesh(t, f, output_img[0, 0, :, :], vmin=0)
-        plt.ylim([f[1], f[-1]])
-        plt.yscale('log')
-        plt.show()
-        #skimage.io.imsave('output_'+str(epoch)+'.png', output_img[:,:,0])
-
-
 def outputWavDatas(args, model, device, loader, sl, target_):
     target_Zxx = signal.stft(target_, fs=sl)[2]
     model.eval()
-    test_loss = 0
     with torch.no_grad():
         samples = next(loader.__iter__())
         input_img, teach_img = samples['input_img'].to(
@@ -258,15 +225,6 @@ def outputWavDatas(args, model, device, loader, sl, target_):
         sf.write('teach_.wav', Teach_, sl)
 
         sf.write('test.wav', Test, sl)
-
-
-def adjust(x1, x2):
-    if (x1.size(2) != x2.size(2)) or (x1.size(3) != x2.size(3)):
-        min2 = min(x2.size(2), x1.size(2))
-        min3 = min(x2.size(3), x1.size(3))
-        x1 = x1[:, :, :min2, :min3]
-        x2 = x2[:, :, :min2, :min3]
-    return x1, x2
 
 
 def main():
@@ -304,25 +262,17 @@ def main():
 
     parser.add_argument('-n_fft', type=int, default=1024)
     parser.add_argument('-hop_length', type=int, default=512)
+    parser.add_argument('-max_length', type=int, default=100000)
 
     opt = parser.parse_args()
     opt.cuda = not opt.no_cuda
     opt.d_word_vec = opt.d_model
 
-    if not opt.log and not opt.save_model:
-        print('No experiment result will be saved.')
-
-    if opt.batch_size < 2048 and opt.n_warmup_steps <= 4000:
-        print('[Warning] The warmup steps may be not enough.\n'
-              '(sz_b, warmup) = (2048, 4000) is the official setting.\n'
-              'Using smaller batch w/o longer warmup may cause '
-              'the warmup stage ends with only little data trained.')
-
     device = torch.device('cuda' if opt.cuda else 'cpu')
 
     #========= Loading Dataset =========#
 
-    train_dataset = AudioDataset(data_type='train')
+    train_dataset = AudioDataset(data_type='train', max_length=opt.max_length)
     test_dataset = AudioDataset(data_type='val')
     train_data_loader = DataLoader(dataset=train_dataset, batch_size=opt.batch_size,
                                    collate_fn=train_dataset.collate, shuffle=True, num_workers=0)
