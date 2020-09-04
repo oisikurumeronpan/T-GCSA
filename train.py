@@ -60,7 +60,7 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
     total_loss = 0
 
     with tqdm(training_data) as pbar:
-        for batch, ch in enumerate(pbar):
+        for i, batch in enumerate(pbar):
             # prepare data
             mixed, clean, seq_len = map(lambda x: x.to(device), batch)
 
