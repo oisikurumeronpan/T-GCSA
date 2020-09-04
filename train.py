@@ -126,7 +126,7 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
             # backward and update parameters
             loss = wSDRLoss(mixed, clean, output)
 
-            bs = validation_data.__len__()
+            bs = mixed.shape[0]
 
             for i in range(bs):
                 avg_pesq += pesq(clean[i].cpu(), output[i].cpu(), 48000)
