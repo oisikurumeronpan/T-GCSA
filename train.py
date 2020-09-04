@@ -87,7 +87,7 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
             # backward and update parameters
             loss = wSDRLoss(mixed, clean, output)
             loss.backward()
-            optimizer.step_and_update_lr()
+            optimizer.step()
 
             # bs = mixed.shape[0]
             # avg_pesq = 0
@@ -100,8 +100,7 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
 
             # note keeping
             total_loss += loss.item()
-            pbar.set_postfix(OrderedDict(
-                loss=math.exp(loss.item()), pesq=avg_pesq))
+            pbar.set_postfix(OrderedDict(loss=math.exp(loss.item())))
 
     return total_loss
 
@@ -148,7 +147,7 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
     return total_loss, total_pesq
 
 
-def train(model, stft, istft, training_data, validation_data, optimizer, device, opt):
+def train(model, stft, istft, training_data, validation_data, optimizer, scheduler, device, opt):
     ''' Start training '''
 
     log_train_file, log_valid_file = None, None
@@ -192,6 +191,8 @@ def train(model, stft, istft, training_data, validation_data, optimizer, device,
 
         checkpoint = {'epoch': epoch_i, 'settings': opt,
                       'model': model.state_dict()}
+
+        scheduler.step()
 
         if opt.save_model:
             if opt.save_mode == 'all':
@@ -326,7 +327,9 @@ def main():
     #     2.0, opt.d_model, opt.n_warmup_steps
     # )
 
-    optimizer = ExponentialLR(optim.Adam(model.parameters(), lr=1e-3), 0.95)
+    optimizer = optim.Adam(model.parameters(), lr=1e-3)
+
+    scheduler = ExponentialLR(optimizer, 0.95)
 
     train(
         model=model,
@@ -335,6 +338,7 @@ def main():
         training_data=train_data_loader,
         validation_data=test_data_loader,
         optimizer=optimizer,
+        scheduler=scheduler,
         device=device,
         opt=opt,
     )
