@@ -17,6 +17,7 @@ from torch.utils.data import Dataset, DataLoader
 from datasets import AudioDataset
 from gcsa.Models import Transformer, ISTFT
 from gcsa.Optim import ScheduledOptim
+from collections import OrderedDict
 
 from tqdm import tqdm
 
@@ -58,35 +59,37 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
     model.train()
     total_loss = 0
 
-    for batch in tqdm(training_data):
-        # prepare data
-        mixed, clean, seq_len = map(lambda x: x.to(device), batch)
+    with tqdm(training_data) as pbar:
+        for batch in enumerate(pbar):
+            # prepare data
+            mixed, clean, seq_len = map(lambda x: x.to(device), batch)
 
-        mixed_stft = stft(mixed)
-        mixed_r, mixed_i = mixed_stft[..., 0], mixed_stft[..., 1]
+            mixed_stft = stft(mixed)
+            mixed_r, mixed_i = mixed_stft[..., 0], mixed_stft[..., 1]
 
-        # forward
-        optimizer.zero_grad()
-        mask_r, mask_i = model(
-            mixed_r, mixed_i, calc_dwm(mixed_r.shape[2]).to(device))
+            # forward
+            optimizer.zero_grad()
+            mask_r, mask_i = model(
+                mixed_r, mixed_i, calc_dwm(mixed_r.shape[2]).to(device))
 
-        output_r, output_i = mixed_r*mask_r - mixed_i * \
-            mask_i, mixed_r*mask_i + mixed_i*mask_r
+            output_r, output_i = mixed_r*mask_r - mixed_i * \
+                mask_i, mixed_r*mask_i + mixed_i*mask_r
 
-        output_r = output_r.unsqueeze(-1)
-        output_i = output_i.unsqueeze(-1)
+            output_r = output_r.unsqueeze(-1)
+            output_i = output_i.unsqueeze(-1)
 
-        recombined = torch.cat([output_r, output_i], dim=-1)
+            recombined = torch.cat([output_r, output_i], dim=-1)
 
-        output = torch.squeeze(istft(recombined, mixed.shape[1]), dim=1)
+            output = torch.squeeze(istft(recombined, mixed.shape[1]), dim=1)
 
-        # backward and update parameters
-        loss = wSDRLoss(mixed, clean, output)
-        loss.backward()
-        optimizer.step_and_update_lr()
+            # backward and update parameters
+            loss = wSDRLoss(mixed, clean, output)
+            loss.backward()
+            optimizer.step_and_update_lr()
 
-        # note keeping
-        total_loss += loss.item()
+            # note keeping
+            total_loss += loss.item()
+            pbar.set_postfix(OrderedDict(loss=math.exp(loss.item())))
 
     return total_loss
 
