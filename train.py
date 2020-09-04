@@ -92,7 +92,8 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
             avg_pesq = 0
 
             for i in range(bs):
-                avg_pesq += pesq(clean[i].cpu(), output[i].cpu(), 16000)
+                avg_pesq += pesq(clean[i].detach().numpy(),
+                                 output[i].detach().numpy(), 16000)
 
             avg_pesq = avg_pesq / bs
 
