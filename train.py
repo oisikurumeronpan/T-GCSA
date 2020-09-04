@@ -88,9 +88,19 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
             loss.backward()
             optimizer.step_and_update_lr()
 
+            bs = mixed.shape[0]
+
+            avg_pesq
+
+            for i in range(bs):
+                avg_pesq += pesq(clean[i].cpu(), output[i].cpu(), 16000)
+
+            avg_pesq = avg_pesq / bs
+
             # note keeping
             total_loss += loss.item()
-            pbar.set_postfix(OrderedDict(loss=math.exp(loss.item())))
+            pbar.set_postfix(OrderedDict(
+                loss=math.exp(loss.item()), pesq=avg_pesq))
 
     return total_loss
 
