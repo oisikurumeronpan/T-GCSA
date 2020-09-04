@@ -60,9 +60,9 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
     total_loss = 0
 
     with tqdm(training_data) as pbar:
-        for i, batch in enumerate(pbar):
+        for _, batch in enumerate(pbar):
             # prepare data
-            mixed, clean, seq_len = map(lambda x: x.to(device), batch)
+            mixed, clean, _ = map(lambda x: x.to(device), batch)
 
             mixed_stft = stft(mixed)
             mixed_r, mixed_i = mixed_stft[..., 0], mixed_stft[..., 1]
@@ -103,7 +103,7 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
     with torch.no_grad():
         for batch in tqdm(validation_data):
             # prepare data
-            mixed, clean, seq_len = map(lambda x: x.to(device), batch)
+            mixed, clean, _ = map(lambda x: x.to(device), batch)
 
             mixed_stft = stft(mixed)
             mixed_r, mixed_i = mixed_stft[..., 0], mixed_stft[..., 1]
@@ -193,44 +193,9 @@ def train(model, stft, istft, training_data, validation_data, optimizer, device,
                     ppl=math.exp(min(valid_loss, 100))))
 
 
-def test(args, model, device, loader):
-    model.eval()
-    test_loss = 0
-    with torch.no_grad():
-        samples = next(loader.__iter__())
-        input_img, teach_img = samples['input_img'].to(
-            device), samples['teach_img'].to(device)
-        output_img = model(input_img)
-        teach_img, output_img = adjust(teach_img, output_img)
-        test_loss = 10*torch.log10(1./torch.mean((teach_img-output_img)**2))
-
-    print('\nPSNR: {:.4f}\n'.format(test_loss))
-
-
-def visualize(args, model, device, loader, epoch, f, t):
-    model.eval()
-    test_loss = 0
-    with torch.no_grad():
-        samples = next(loader.__iter__())
-        input_img, teach_img = samples['input_img'].to(
-            device), samples['teach_img'].to(device)
-
-        output_img = model(input_img)
-
-        output_img = output_img.cpu()
-
-        plt.figure()
-        plt.pcolormesh(t, f, output_img[0, 0, :, :], vmin=0)
-        plt.ylim([f[1], f[-1]])
-        plt.yscale('log')
-        plt.show()
-        #skimage.io.imsave('output_'+str(epoch)+'.png', output_img[:,:,0])
-
-
 def outputWavDatas(args, model, device, loader, sl, target_):
     target_Zxx = signal.stft(target_, fs=sl)[2]
     model.eval()
-    test_loss = 0
     with torch.no_grad():
         samples = next(loader.__iter__())
         input_img, teach_img = samples['input_img'].to(
@@ -260,15 +225,6 @@ def outputWavDatas(args, model, device, loader, sl, target_):
         sf.write('teach_.wav', Teach_, sl)
 
         sf.write('test.wav', Test, sl)
-
-
-def adjust(x1, x2):
-    if (x1.size(2) != x2.size(2)) or (x1.size(3) != x2.size(3)):
-        min2 = min(x2.size(2), x1.size(2))
-        min3 = min(x2.size(3), x1.size(3))
-        x1 = x1[:, :, :min2, :min3]
-        x2 = x2[:, :, :min2, :min3]
-    return x1, x2
 
 
 def main():
