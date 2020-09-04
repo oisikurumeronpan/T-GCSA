@@ -89,8 +89,7 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
             optimizer.step_and_update_lr()
 
             bs = mixed.shape[0]
-
-            avg_pesq
+            avg_pesq = 0
 
             for i in range(bs):
                 avg_pesq += pesq(clean[i].cpu(), output[i].cpu(), 16000)
