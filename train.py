@@ -100,7 +100,7 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
 
     model.eval()
     total_loss = 0
-    avg_pesq = 0
+    total_pesq = 0
 
     with torch.no_grad():
         for batch in tqdm(validation_data):
@@ -129,14 +129,12 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
             bs = mixed.shape[0]
 
             for i in range(bs):
-                avg_pesq += pesq(clean[i].cpu(), output[i].cpu(), 16000)
-
-            avg_pesq = avg_pesq / bs
+                total_pesq += pesq(clean[i].cpu(), output[i].cpu(), 16000)
 
             # note keeping
             total_loss += loss.item()
 
-    return total_loss, avg_pesq
+    return total_loss, total_pesq
 
 
 def train(model, stft, istft, training_data, validation_data, optimizer, device, opt):
@@ -173,11 +171,11 @@ def train(model, stft, istft, training_data, validation_data, optimizer, device,
                            training_data.__len__(), start)
 
         start = time.time()
-        valid_loss, avg_pesq = eval_epoch(
+        valid_loss, total_pesq = eval_epoch(
             model, stft, istft, validation_data, device, opt)
         print_performances('Validation', valid_loss /
                            validation_data.__len__(), start,)
-        print('pesq: ', avg_pesq)
+        print('pesq: ', total_pesq)
 
         valid_losses += [valid_loss]
 
