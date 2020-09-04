@@ -16,7 +16,8 @@ import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from datasets import AudioDataset
 from gcsa.Models import Transformer, ISTFT
-from gcsa.Optim import ScheduledOptim
+# from gcsa.Optim import ScheduledOptim
+from torch.optim.lr_scheduler import ExponentialLR
 from collections import OrderedDict
 from pypesq import pesq
 
@@ -88,14 +89,14 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
             loss.backward()
             optimizer.step_and_update_lr()
 
-            bs = mixed.shape[0]
-            avg_pesq = 0
+            # bs = mixed.shape[0]
+            # avg_pesq = 0
 
-            for i in range(bs):
-                avg_pesq += pesq(clean[i].cpu().detach().numpy(),
-                                 output[i].cpu().detach().numpy(), 16000)
+            # for i in range(bs):
+            #     avg_pesq += pesq(clean[i].cpu().detach().numpy(),
+            #                      output[i].cpu().detach().numpy(), 16000)
 
-            avg_pesq = avg_pesq / bs
+            # avg_pesq = avg_pesq / bs
 
             # note keeping
             total_loss += loss.item()
@@ -320,10 +321,12 @@ def main():
                                              length=length,
                                              window=window)
 
-    optimizer = ScheduledOptim(
-        optim.Adam(model.parameters(), betas=(0.9, 0.98), eps=1e-09),
-        2.0, opt.d_model, opt.n_warmup_steps
-    )
+    # optimizer = ScheduledOptim(
+    #     optim.Adam(model.parameters(), betas=(0.9, 0.98), eps=1e-09),
+    #     2.0, opt.d_model, opt.n_warmup_steps
+    # )
+
+    optimizer = ExponentialLR(optim.Adam(model.parameters(), lr=1e-3), 0.95)
 
     train(
         model=model,
