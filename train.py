@@ -30,7 +30,6 @@ def SDRLoss(clean, est, eps=2e-7):
     alpha = alpha.unsqueeze(1)
     a = bsum((alpha*clean)**2)
     b = bsum((alpha*clean - est)**2)
-    print(a.shape, b.shape)
 
     return torch.mean(10*torch.log10(a/b))
 
@@ -112,7 +111,7 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
 
             # note keeping
             total_loss += loss.item()
-            pbar.set_postfix(OrderedDict(loss=math.exp(loss.item())))
+            pbar.set_postfix(OrderedDict(loss=loss.item()))
 
     return total_loss
 
