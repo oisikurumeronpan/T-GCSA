@@ -28,7 +28,7 @@ def SDRLoss(clean, est, eps=2e-7):
     def bsum(x): return torch.sum(x, dim=1)
     alpha = bsum(clean*est) / bsum(clean*clean)
 
-    return 10*torch.log10(bsum((alpha*clean)**2)/bsum(alpha*clean - est)**2)
+    return 10*torch.log10(bsum((alpha*clean)**2)/bsum((alpha*clean - est)**2))
 
 
 def wSDRLoss(mixed, clean, clean_est, eps=2e-7):
@@ -177,7 +177,7 @@ def train(model, stft, istft, training_data, validation_data, optimizer, schedul
                   header=f"({header})", loss=math.exp(min(loss, 100)),
                   elapse=(time.time()-start_time)/60))
 
-    #valid_accus = []
+    # valid_accus = []
     valid_losses = []
     for epoch_i in range(opt.epoch):
         print('[ Epoch', epoch_i, ']')
