@@ -27,8 +27,11 @@ from tqdm import tqdm
 def SDRLoss(clean, est, eps=2e-7):
     def bsum(x): return torch.sum(x, dim=1)
     alpha = bsum(clean*est) / bsum(clean*clean)
+    a = bsum((alpha*clean)**2)
+    b = bsum((alpha*clean - est)**2)
+    print(a.shape, b.shape)
 
-    return 10*torch.log10(bsum((alpha*clean)**2)/bsum((alpha*clean - est)**2))
+    return torch.mean(10*torch.log10(a/b))
 
 
 def wSDRLoss(mixed, clean, clean_est, eps=2e-7):
