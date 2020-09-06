@@ -95,8 +95,8 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
             output = torch.squeeze(istft(recombined, mixed.shape[1]), dim=1)
 
             # backward and update parameters
-            # loss = wSDRLoss(mixed, clean, output)
-            loss = SDRLoss(clean, output)
+            loss = wSDRLoss(mixed, clean, output)
+            # loss = SDRLoss(clean, output)
             loss.backward()
             optimizer.step()
 
