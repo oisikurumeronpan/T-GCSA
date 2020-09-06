@@ -24,6 +24,13 @@ from pypesq import pesq
 from tqdm import tqdm
 
 
+def SDRLoss(clean, est, eps=2e-7):
+    def bsum(x): return torch.sum(x, dim=1)
+    alpha = bsum(clean*est) / bsum(clean*clean)
+
+    return 10*torch.log10(bsum((alpha*clean)**2)/bsum(alpha*clean - est)**2)
+
+
 def wSDRLoss(mixed, clean, clean_est, eps=2e-7):
     # Used on signal level(time-domain). Backprop-able istft should be used.
     # Batched audio inputs shape (N x T) required.
@@ -85,7 +92,8 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
             output = torch.squeeze(istft(recombined, mixed.shape[1]), dim=1)
 
             # backward and update parameters
-            loss = wSDRLoss(mixed, clean, output)
+            # loss = wSDRLoss(mixed, clean, output)
+            loss = SDRLoss(clean, output)
             loss.backward()
             optimizer.step()
 
