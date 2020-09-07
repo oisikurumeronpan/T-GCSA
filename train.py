@@ -26,10 +26,10 @@ from tqdm import tqdm
 
 def SDRLoss(clean, est, eps=2e-7):
     def bsum(x): return torch.sum(x, dim=1)
-    alpha = bsum(clean*est) / bsum(clean*clean)
+    alpha = bsum(clean*est) / bsum(torch.abs(clean**2))
     alpha = alpha.unsqueeze(1)
-    a = bsum((alpha*clean)**2)
-    b = bsum((alpha*clean - est)**2)
+    a = bsum(torch.abs((alpha*clean)**2))
+    b = bsum(torch.abs((alpha*clean - est)**2))
 
     return torch.mean(10*torch.log10(a/b))
 
@@ -96,6 +96,7 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
 
             # backward and update parameters
             loss = wSDRLoss(mixed, clean, output)
+            sdr = SDRLoss(clean, output)
             # loss = SDRLoss(clean, output)
             loss.backward()
             optimizer.step()
@@ -111,7 +112,7 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
 
             # note keeping
             total_loss += loss.item()
-            pbar.set_postfix(OrderedDict(loss=loss.item()))
+            pbar.set_postfix(OrderedDict(loss=loss.item(), sdr=sdr))
 
     return total_loss
 
