@@ -186,7 +186,7 @@ def train(model, stft, istft, training_data, validation_data, optimizer, schedul
     def print_performances(header, loss, start_time):
         print('  - {header:12} loss: {loss: 8.5f},'
               'elapse: {elapse:3.3f} min'.format(
-                  header=f"({header})", loss=math.exp(min(loss, 100)),
+                  header=f"({header})", loss=loss,
                   elapse=(time.time()-start_time)/60))
 
     # valid_accus = []
