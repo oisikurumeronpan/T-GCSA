@@ -24,6 +24,13 @@ from pypesq import pesq
 from tqdm import tqdm
 
 
+def SNR(clean, est, eps=2e-7):
+    a = torch.norm(clean, p=2, dim=1)
+    b = torch.norm(clean - est, p=2, dim=1)
+
+    return torch.mean(10*torch.log10(a/b))
+
+
 def SDRLoss(clean, est, eps=2e-7):
     def bsum(x): return torch.sum(x, dim=1)
     alpha = bsum(clean*est) / bsum(torch.abs(clean**2))
@@ -96,8 +103,9 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
 
             # backward and update parameters
             loss = wSDRLoss(mixed, clean, output)
-            sdr = SDRLoss(clean, output)
-            # loss = SDRLoss(clean, output)
+
+            snr = SNR(clean, output)
+
             loss.backward()
             optimizer.step()
 
@@ -112,7 +120,7 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
 
             # note keeping
             total_loss += loss.item()
-            pbar.set_postfix(OrderedDict(loss=loss.item(), sdr=sdr))
+            pbar.set_postfix(OrderedDict(loss=loss.item(), snr=snr.item()))
 
     return total_loss
 
@@ -339,7 +347,7 @@ def main():
     #     2.0, opt.d_model, opt.n_warmup_steps
     # )
 
-    optimizer = optim.Adam(model.parameters(), lr=1e-9)
+    optimizer = optim.Adam(model.parameters(), lr=1e-5)
 
     scheduler = ExponentialLR(optimizer, 0.95)
 
