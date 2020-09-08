@@ -266,11 +266,11 @@ def out_result(model, stft, istft, validation_data, device, opt):
 
             for i in range(bs):
                 sf.write(
-                    'result/{count}_clean'.format(count=count), clean[i], 48000)
+                    'result/{count}_clean'.format(count=count), clean[i].cpu(), 48000)
                 sf.write(
-                    'result/{count}_noisy'.format(count=count), mixed[i], 48000)
+                    'result/{count}_noisy'.format(count=count), mixed[i].cpu(), 48000)
                 sf.write(
-                    'result/{count}_output'.format(count=count), output[i], 48000)
+                    'result/{count}_output'.format(count=count), output[i].cpu(), 48000)
 
 
 def outputWavDatas(args, model, device, loader, sl, target_):
