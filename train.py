@@ -271,6 +271,7 @@ def out_result(model, stft, istft, validation_data, device, opt):
                     'result/{count}_noisy.wav'.format(count=count), mixed[i].cpu(), 48000)
                 sf.write(
                     'result/{count}_output.wav'.format(count=count), output[i].cpu(), 48000)
+                count += 1
 
 
 def outputWavDatas(args, model, device, loader, sl, target_):
