@@ -235,6 +235,44 @@ def train(model, stft, istft, training_data, validation_data, optimizer, schedul
                     ppl=math.exp(min(valid_loss, 100))))
 
 
+def out_result(model, stft, istft, validation_data, device, opt):
+    ''' Epoch operation in evaluation phase '''
+
+    model.eval()
+
+    count = 0
+    with torch.no_grad():
+        for batch in tqdm(validation_data):
+            # prepare data
+            mixed, clean, _ = map(lambda x: x.to(device), batch)
+
+            mixed_stft = stft(mixed)
+            mixed_r, mixed_i = mixed_stft[..., 0], mixed_stft[..., 1]
+
+            # forward
+            mask_r, mask_i = model(
+                mixed_r, mixed_i, calc_dwm(mixed_r.shape[2]).to(device))
+
+            output_r, output_i = mixed_r*mask_r - mixed_i * \
+                mask_i, mixed_r*mask_i + mixed_i*mask_r
+
+            output_r = output_r.unsqueeze(-1)
+            output_i = output_i.unsqueeze(-1)
+
+            recombined = torch.cat([output_r, output_i], dim=-1)
+            output = torch.squeeze(istft(recombined, mixed.shape[1]), dim=1)
+
+            bs = mixed.shape[0]
+
+            for i in range(bs):
+                sf.write(
+                    'result/{count}_clean'.format(count=count), clean[i], 48000)
+                sf.write(
+                    'result/{count}_noisy'.format(count=count), mixed[i], 48000)
+                sf.write(
+                    'result/{count}_output'.format(count=count), output[i], 48000)
+
+
 def outputWavDatas(args, model, device, loader, sl, target_):
     target_Zxx = signal.stft(target_, fs=sl)[2]
     model.eval()
@@ -359,6 +397,15 @@ def main():
         validation_data=test_data_loader,
         optimizer=optimizer,
         scheduler=scheduler,
+        device=device,
+        opt=opt,
+    )
+
+    out_result(
+        model=model,
+        stft=stft,
+        istft=istft,
+        validation_data=test_data_loader,
         device=device,
         opt=opt,
     )

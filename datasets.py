@@ -41,8 +41,8 @@ def load_data(dataset, max_length):
     for id in tqdm(range(len(dataset['innames']))):
 
         if dataset['inaudio'][id] is None:
-            inputData, sr = librosa.load(dataset['innames'][id], sr=None)
-            outputData, sr = librosa.load(dataset['outnames'][id], sr=None)
+            inputData, sr = librosa.load(dataset['innames'][id], sr=48000)
+            outputData, sr = librosa.load(dataset['outnames'][id], sr=48000)
 
             in_shape = np.shape(inputData)
             if (in_shape[0] > max_length):
