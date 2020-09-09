@@ -354,8 +354,9 @@ def main():
 
     #========= Loading Dataset =========#
 
-    train_dataset = AudioDataset(data_type='train', max_length=opt.max_length)
-    test_dataset = AudioDataset(data_type='val')
+    train_dataset = AudioDataset(
+        data_type='train', max_length=opt.train_length)
+    test_dataset = AudioDataset(data_type='val', max_length=opt.val_length)
     train_data_loader = DataLoader(dataset=train_dataset, batch_size=opt.batch_size,
                                    collate_fn=train_dataset.collate, shuffle=True, num_workers=0)
     test_data_loader = DataLoader(dataset=test_dataset, batch_size=opt.batch_size,
