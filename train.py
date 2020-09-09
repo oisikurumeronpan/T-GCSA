@@ -343,7 +343,8 @@ def main():
 
     parser.add_argument('-n_fft', type=int, default=1024)
     parser.add_argument('-hop_length', type=int, default=512)
-    parser.add_argument('-max_length', type=int, default=100000)
+    parser.add_argument('-train_length', type=int, default=120000)
+    parser.add_argument('-val_length', type=int, default=400000)
 
     opt = parser.parse_args()
     opt.cuda = not opt.no_cuda
