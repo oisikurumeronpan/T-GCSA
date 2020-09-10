@@ -88,6 +88,7 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
 
     model.train()
     total_loss = 0
+    total_ssnr = 0
 
     with tqdm(training_data) as pbar:
         for _, batch in enumerate(pbar):
@@ -115,7 +116,6 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
             # backward and update parameters
             loss = wSDRLoss(mixed, clean, output)
 
-            snr = SNR(clean, output)
             ssnr = SegSNR(clean, output)
 
             loss.backward()
@@ -132,11 +132,11 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
 
             # note keeping
             total_loss += loss.item()
+            total_ssnr += ssnr.item()
             pbar.set_postfix(OrderedDict(loss=loss.item(),
-                                         snr=snr.item(),
                                          ssnr=ssnr.item(),))
 
-    return total_loss
+    return total_loss, total_ssnr
 
 
 def eval_epoch(model, stft, istft, validation_data, device, opt):
@@ -145,6 +145,7 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
     model.eval()
     total_loss = 0
     total_pesq = 0
+    total_ssnr = 0
 
     with torch.no_grad():
         for batch in tqdm(validation_data):
@@ -169,6 +170,7 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
 
             # backward and update parameters
             loss = wSDRLoss(mixed, clean, output)
+            ssnr = SegSNR(clean, output)
 
             bs = mixed.shape[0]
 
@@ -177,8 +179,9 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
 
             # note keeping
             total_loss += loss.item()
+            total_ssnr += ssnr
 
-    return total_loss, total_pesq
+    return total_loss, total_pesq, total_ssnr
 
 
 def train(model, stft, istft, training_data, validation_data, optimizer, scheduler, device, opt):
@@ -197,10 +200,11 @@ def train(model, stft, istft, training_data, validation_data, optimizer, schedul
             log_tf.write('epoch,loss,ppl,accuracy\n')
             log_vf.write('epoch,loss,ppl,accuracy\n')
 
-    def print_performances(header, loss, start_time):
+    def print_performances(header, loss, ssnr, start_time):
         print('  - {header:12} loss: {loss: 8.5f},'
+              'ssnr: {ssnr}'
               'elapse: {elapse:3.3f} min'.format(
-                  header=f"({header})", loss=loss,
+                  header=f"({header})", loss=loss, ssnr=ssnr,
                   elapse=(time.time()-start_time)/60))
 
     # valid_accus = []
@@ -209,16 +213,21 @@ def train(model, stft, istft, training_data, validation_data, optimizer, schedul
         print('[ Epoch', epoch_i, ']')
 
         start = time.time()
-        train_loss = train_epoch(
+        train_loss, train_ssnr = train_epoch(
             model, stft, istft, training_data, optimizer, opt, device, smoothing=opt.label_smoothing)
-        print_performances('Training', train_loss /
-                           training_data.__len__(), start)
+        print_performances('Training',
+                           train_loss / training_data.__len__(),
+                           train_ssnr / training_data.__len__(),
+                           start)
 
         start = time.time()
-        valid_loss, total_pesq = eval_epoch(
+        valid_loss, total_pesq, valid_ssnr = eval_epoch(
             model, stft, istft, validation_data, device, opt)
-        print_performances('Validation', valid_loss /
-                           validation_data.__len__(), start,)
+        print_performances('Validation',
+                           valid_loss / validation_data.__len__(),
+                           valid_ssnr / validation_data.__len__(),
+                           start)
+
         print('pesq: ', total_pesq)
 
         valid_losses += [valid_loss]
