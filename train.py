@@ -24,11 +24,21 @@ from pypesq import pesq
 from tqdm import tqdm
 
 
-def SNR(clean, est, eps=2e-7):
+def SNRCore(clean, est, eps=2e-7):
     a = torch.norm(clean, p=2, dim=1)
     b = torch.norm(clean - est, p=2, dim=1)
+    return 10*torch.log10(a/b)
 
-    return torch.mean(10*torch.log10(a/b))
+
+def SNR(clean, est, eps=2e-7):
+    return torch.mean(SNRCore(clean, est))
+
+
+def SegSNR(clean, est, eps=2e-7):
+    ssnr = SNRCore(clean, est)
+    ssnr = ssnr.clamp(min=-10, max=35)
+
+    return torch.mean(ssnr)
 
 
 def SDRLoss(clean, est, eps=2e-7):
@@ -105,6 +115,7 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
             loss = wSDRLoss(mixed, clean, output)
 
             snr = SNR(clean, output)
+            ssnr = SegSNR(clean, output)
 
             loss.backward()
             optimizer.step()
@@ -120,7 +131,7 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
 
             # note keeping
             total_loss += loss.item()
-            pbar.set_postfix(OrderedDict(loss=loss.item(), snr=snr.item()))
+            pbar.set_postfix(OrderedDict(loss=loss.item(), snr=snr.item(), ssnr.item()))
 
     return total_loss
 
