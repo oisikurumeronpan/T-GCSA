@@ -131,7 +131,9 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
 
             # note keeping
             total_loss += loss.item()
-            pbar.set_postfix(OrderedDict(loss=loss.item(), snr=snr.item(), ssnr.item()))
+            pbar.set_postfix(OrderedDict(loss=loss.item(),
+                                         snr=snr.item(),
+                                         ssnr=ssnr.item(),))
 
     return total_loss
 
