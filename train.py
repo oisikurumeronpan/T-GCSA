@@ -26,7 +26,7 @@ from tqdm import tqdm
 
 def SNRCore(clean, est, eps=2e-7):
     a = torch.pow(clean, 2)
-    b = torch.pow(clean - est, 2)
+    b = torch.pow(clean - est, 2) + eps
     return 10*torch.log10(a/b)
 
 
