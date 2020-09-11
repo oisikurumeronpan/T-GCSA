@@ -179,7 +179,7 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
 
             # note keeping
             total_loss += loss.item()
-            total_ssnr += ssnr
+            total_ssnr += ssnr.item()
 
     return total_loss, total_pesq, total_ssnr
 
