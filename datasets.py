@@ -41,13 +41,14 @@ def load_data(dataset, max_length):
     for id in tqdm(range(len(dataset['innames']))):
 
         if dataset['inaudio'][id] is None:
-            inputData, sr = librosa.load(dataset['innames'][id], sr=None)
-            outputData, sr = librosa.load(dataset['outnames'][id], sr=None)
+            inputData, sr = librosa.load(dataset['innames'][id], sr=48000)
+            outputData, sr = librosa.load(dataset['outnames'][id], sr=48000)
 
             in_shape = np.shape(inputData)
-            if (in_shape[0] > max_length):
-                inputData = inputData[0:max_length]
-                outputData = outputData[0:max_length]
+            if max_length is not None:
+                if (in_shape[0] > max_length):
+                    inputData = inputData[0:max_length]
+                    outputData = outputData[0:max_length]
 
             dataset['inaudio'][id] = np.float32(inputData)
             dataset['outaudio'][id] = np.float32(outputData)
@@ -60,7 +61,7 @@ class AudioDataset(data.Dataset):
     Audio sample reader.
     """
 
-    def __init__(self, data_type, max_length=100000):
+    def __init__(self, data_type, max_length=None):
         dataset = load_data_list(setname=data_type)
         self.dataset = load_data(dataset, max_length)
 

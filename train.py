@@ -16,10 +16,40 @@ import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from datasets import AudioDataset
 from gcsa.Models import Transformer, ISTFT
-from gcsa.Optim import ScheduledOptim
+# from gcsa.Optim import ScheduledOptim
+from torch.optim.lr_scheduler import ExponentialLR
 from collections import OrderedDict
+from pypesq import pesq
 
 from tqdm import tqdm
+
+
+def SNRCore(clean, est, eps=2e-7):
+    def bsum(x): return torch.sum(x, dim=1)
+    a = bsum(clean**2)
+    b = bsum((clean - est)**2) + eps
+    return 10*torch.log10(a/b)
+
+
+def SNR(clean, est, eps=2e-7):
+    return torch.mean(SNRCore(clean, est))
+
+
+def SegSNR(clean, est, eps=2e-7):
+    ssnr = SNRCore(clean, est)
+    ssnr = ssnr.clamp(min=-10, max=35)
+
+    return torch.mean(ssnr)
+
+
+def SDRLoss(clean, est, eps=2e-7):
+    def bsum(x): return torch.sum(x, dim=1)
+    alpha = bsum(clean*est) / bsum(torch.abs(clean**2))
+    alpha = alpha.unsqueeze(1)
+    a = bsum(torch.abs((alpha*clean)**2))
+    b = bsum(torch.abs((alpha*clean - est)**2))
+
+    return torch.mean(10*torch.log10(a/b))
 
 
 def wSDRLoss(mixed, clean, clean_est, eps=2e-7):
@@ -58,6 +88,7 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
 
     model.train()
     total_loss = 0
+    total_ssnr = 0
 
     with tqdm(training_data) as pbar:
         for _, batch in enumerate(pbar):
@@ -84,14 +115,28 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
 
             # backward and update parameters
             loss = wSDRLoss(mixed, clean, output)
+
+            ssnr = SegSNR(clean, output)
+
             loss.backward()
-            optimizer.step_and_update_lr()
+            optimizer.step()
+
+            # bs = mixed.shape[0]
+            # avg_pesq = 0
+
+            # for i in range(bs):
+            #     avg_pesq += pesq(clean[i].cpu().detach().numpy(),
+            #                      output[i].cpu().detach().numpy(), 16000)
+
+            # avg_pesq = avg_pesq / bs
 
             # note keeping
             total_loss += loss.item()
-            pbar.set_postfix(OrderedDict(loss=math.exp(loss.item())))
+            total_ssnr += ssnr.item()
+            pbar.set_postfix(OrderedDict(loss=loss.item(),
+                                         ssnr=ssnr.item(),))
 
-    return total_loss
+    return total_loss, total_ssnr
 
 
 def eval_epoch(model, stft, istft, validation_data, device, opt):
@@ -99,6 +144,8 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
 
     model.eval()
     total_loss = 0
+    total_pesq = 0
+    total_ssnr = 0
 
     with torch.no_grad():
         for batch in tqdm(validation_data):
@@ -123,14 +170,21 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
 
             # backward and update parameters
             loss = wSDRLoss(mixed, clean, output)
+            ssnr = SegSNR(clean, output)
+
+            bs = mixed.shape[0]
+
+            for i in range(bs):
+                total_pesq += pesq(clean[i].cpu(), output[i].cpu(), 16000)
 
             # note keeping
             total_loss += loss.item()
+            total_ssnr += ssnr
 
-    return total_loss
+    return total_loss, total_pesq, total_ssnr
 
 
-def train(model, stft, istft, training_data, validation_data, optimizer, device, opt):
+def train(model, stft, istft, training_data, validation_data, optimizer, scheduler, device, opt):
     ''' Start training '''
 
     log_train_file, log_valid_file = None, None
@@ -146,31 +200,42 @@ def train(model, stft, istft, training_data, validation_data, optimizer, device,
             log_tf.write('epoch,loss,ppl,accuracy\n')
             log_vf.write('epoch,loss,ppl,accuracy\n')
 
-    def print_performances(header, loss, start_time):
+    def print_performances(header, loss, ssnr, start_time):
         print('  - {header:12} loss: {loss: 8.5f},'
+              'ssnr: {ssnr}'
               'elapse: {elapse:3.3f} min'.format(
-                  header=f"({header})", loss=math.exp(min(loss, 100)),
+                  header=f"({header})", loss=loss, ssnr=ssnr,
                   elapse=(time.time()-start_time)/60))
 
-    #valid_accus = []
+    # valid_accus = []
     valid_losses = []
     for epoch_i in range(opt.epoch):
         print('[ Epoch', epoch_i, ']')
 
         start = time.time()
-        train_loss = train_epoch(
+        train_loss, train_ssnr = train_epoch(
             model, stft, istft, training_data, optimizer, opt, device, smoothing=opt.label_smoothing)
-        print_performances('Training', train_loss, start)
+        print_performances('Training',
+                           train_loss / training_data.__len__(),
+                           train_ssnr / training_data.__len__(),
+                           start)
 
         start = time.time()
-        valid_loss = eval_epoch(
+        valid_loss, total_pesq, valid_ssnr = eval_epoch(
             model, stft, istft, validation_data, device, opt)
-        print_performances('Validation', valid_loss, start)
+        print_performances('Validation',
+                           valid_loss / validation_data.__len__(),
+                           valid_ssnr / validation_data.__len__(),
+                           start)
+
+        print('pesq: ', total_pesq)
 
         valid_losses += [valid_loss]
 
         checkpoint = {'epoch': epoch_i, 'settings': opt,
                       'model': model.state_dict()}
+
+        scheduler.step()
 
         if opt.save_model:
             if opt.save_mode == 'all':
@@ -191,6 +256,45 @@ def train(model, stft, istft, training_data, validation_data, optimizer, device,
                 log_vf.write('{epoch},{loss: 8.5f},{ppl: 8.5f},\n'.format(
                     epoch=epoch_i, loss=valid_loss,
                     ppl=math.exp(min(valid_loss, 100))))
+
+
+def out_result(model, stft, istft, validation_data, device, opt):
+    ''' Epoch operation in evaluation phase '''
+
+    model.eval()
+
+    count = 0
+    with torch.no_grad():
+        for batch in tqdm(validation_data):
+            # prepare data
+            mixed, clean, _ = map(lambda x: x.to(device), batch)
+
+            mixed_stft = stft(mixed)
+            mixed_r, mixed_i = mixed_stft[..., 0], mixed_stft[..., 1]
+
+            # forward
+            mask_r, mask_i = model(
+                mixed_r, mixed_i, calc_dwm(mixed_r.shape[2]).to(device))
+
+            output_r, output_i = mixed_r*mask_r - mixed_i * \
+                mask_i, mixed_r*mask_i + mixed_i*mask_r
+
+            output_r = output_r.unsqueeze(-1)
+            output_i = output_i.unsqueeze(-1)
+
+            recombined = torch.cat([output_r, output_i], dim=-1)
+            output = torch.squeeze(istft(recombined, mixed.shape[1]), dim=1)
+
+            bs = mixed.shape[0]
+
+            for i in range(bs):
+                sf.write(
+                    'result/{count}_clean.wav'.format(count=count), clean[i].cpu(), 48000)
+                sf.write(
+                    'result/{count}_noisy.wav'.format(count=count), mixed[i].cpu(), 48000)
+                sf.write(
+                    'result/{count}_output.wav'.format(count=count), output[i].cpu(), 48000)
+                count += 1
 
 
 def outputWavDatas(args, model, device, loader, sl, target_):
@@ -262,7 +366,8 @@ def main():
 
     parser.add_argument('-n_fft', type=int, default=1024)
     parser.add_argument('-hop_length', type=int, default=512)
-    parser.add_argument('-max_length', type=int, default=100000)
+    parser.add_argument('-train_length', type=int, default=120000)
+    parser.add_argument('-val_length', type=int, default=400000)
 
     opt = parser.parse_args()
     opt.cuda = not opt.no_cuda
@@ -272,8 +377,9 @@ def main():
 
     #========= Loading Dataset =========#
 
-    train_dataset = AudioDataset(data_type='train', max_length=opt.max_length)
-    test_dataset = AudioDataset(data_type='val')
+    train_dataset = AudioDataset(
+        data_type='train', max_length=opt.train_length)
+    test_dataset = AudioDataset(data_type='val', max_length=opt.val_length)
     train_data_loader = DataLoader(dataset=train_dataset, batch_size=opt.batch_size,
                                    collate_fn=train_dataset.collate, shuffle=True, num_workers=0)
     test_data_loader = DataLoader(dataset=test_dataset, batch_size=opt.batch_size,
@@ -300,10 +406,14 @@ def main():
                                              length=length,
                                              window=window)
 
-    optimizer = ScheduledOptim(
-        optim.Adam(model.parameters(), betas=(0.9, 0.98), eps=1e-09),
-        2.0, opt.d_model, opt.n_warmup_steps
-    )
+    # optimizer = ScheduledOptim(
+    #     optim.Adam(model.parameters(), betas=(0.9, 0.98), eps=1e-09),
+    #     2.0, opt.d_model, opt.n_warmup_steps
+    # )
+
+    optimizer = optim.Adam(model.parameters(), lr=1e-5)
+
+    scheduler = ExponentialLR(optimizer, 0.95)
 
     train(
         model=model,
@@ -312,6 +422,16 @@ def main():
         training_data=train_data_loader,
         validation_data=test_data_loader,
         optimizer=optimizer,
+        scheduler=scheduler,
+        device=device,
+        opt=opt,
+    )
+
+    out_result(
+        model=model,
+        stft=stft,
+        istft=istft,
+        validation_data=test_data_loader,
         device=device,
         opt=opt,
     )
