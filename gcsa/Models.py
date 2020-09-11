@@ -9,6 +9,7 @@ from gcsa.Layers import EncoderLayer
 
 __author__ = "@oisikurumeronpan"
 
+
 class Encoder(nn.Module):
     ''' A encoder model with self attention mechanism. '''
 
@@ -18,11 +19,9 @@ class Encoder(nn.Module):
 
         super().__init__()
 
-        self.dropout = nn.Dropout(p=dropout)
         self.layer_stack = nn.ModuleList([
             EncoderLayer(d_model, d_inner, n_head, d_k, d_v, dropout=dropout)
             for _ in range(n_layers)])
-        self.layer_norm = nn.LayerNorm(d_model, eps=1e-6)
 
     def forward(self, src_seq_r, src_seq_i, dwm, return_attns=False):
 
@@ -34,7 +33,8 @@ class Encoder(nn.Module):
         enc_output_r, enc_output_i = src_seq_r, src_seq_i
 
         for enc_layer in self.layer_stack:
-            enc_output_r, enc_output_i, enc_slf_attn_r, enc_slf_attn_i = enc_layer(enc_output_r, enc_output_i, dwm)
+            enc_output_r, enc_output_i, enc_slf_attn_r, enc_slf_attn_i = enc_layer(
+                enc_output_r, enc_output_i, dwm)
             enc_slf_attn_list_r += [enc_slf_attn_r] if return_attns else []
             enc_slf_attn_list_i += [enc_slf_attn_i] if return_attns else []
 
@@ -42,12 +42,13 @@ class Encoder(nn.Module):
             return enc_output_r, enc_output_i, enc_slf_attn_list_r, enc_slf_attn_list_i
         return enc_output_r, enc_output_i
 
+
 class Transformer(nn.Module):
     ''' A sequence to sequence model with attention mechanism. '''
 
     def __init__(
             self, d_model=512, d_inner=2048,
-            n_layers=6, n_head=8, d_k=64, d_v=64, dropout=0.1, 
+            n_layers=6, n_head=8, d_k=64, d_v=64, dropout=0.1,
             emb_src_trg_weight_sharing=True):
 
         super().__init__()
@@ -64,18 +65,21 @@ class Transformer(nn.Module):
 
         for p in self.parameters():
             if p.dim() > 1:
-                nn.init.xavier_uniform_(p) 
+                nn.init.xavier_uniform_(p)
 
         if emb_src_trg_weight_sharing:
             self.encoder.src_word_emb.weight = self.decoder.trg_word_emb.weight
 
-
     def forward(self, src_seq_r, src_seq_i, dwm):
-        src_seq_r, src_seq_i = src_seq_r.transpose(1, 2), src_seq_i.transpose(1, 2) # B*D*T -> B*T*D
-        enc_output_r, enc_output_i, *_ = self.encoder(src_seq_r, src_seq_i, dwm)
-        enc_output_r, enc_output_i = enc_output_r.transpose(1, 2), enc_output_i.transpose(1, 2) # B*T*D -> B*D*T
+        src_seq_r, src_seq_i = src_seq_r.transpose(
+            1, 2), src_seq_i.transpose(1, 2)  # B*D*T -> B*T*D
+        enc_output_r, enc_output_i, * \
+            _ = self.encoder(src_seq_r, src_seq_i, dwm)
+        enc_output_r, enc_output_i = enc_output_r.transpose(
+            1, 2), enc_output_i.transpose(1, 2)  # B*T*D -> B*D*T
 
         return enc_output_r, enc_output_i
+
 
 class ISTFT(torch.nn.Module):
     def __init__(self, filter_length=1024, hop_length=512, window='hanning', center=True):
@@ -92,8 +96,8 @@ class ISTFT(torch.nn.Module):
         cutoff = int((self.filter_length / 2 + 1))
         fourier_basis = np.vstack([np.real(fourier_basis[:cutoff, :]),
                                    np.imag(fourier_basis[:cutoff, :])])
-        inverse_basis = torch.FloatTensor(self.inv_win * \
-                np.linalg.pinv(fourier_basis).T[:, None, :])
+        inverse_basis = torch.FloatTensor(self.inv_win *
+                                          np.linalg.pinv(fourier_basis).T[:, None, :])
 
         self.register_buffer('inverse_basis', inverse_basis.float())
 
@@ -105,7 +109,8 @@ class ISTFT(torch.nn.Module):
         window_length = len(window)
         denom = window ** 2
         overlaps = -(-window_length // hop_length)  # Ceiling division.
-        denom = np.pad(denom, (0, overlaps * hop_length - window_length), 'constant')
+        denom = np.pad(denom, (0, overlaps * hop_length -
+                               window_length), 'constant')
         denom = np.reshape(denom, (overlaps, hop_length)).sum(0)
         denom = np.tile(denom, (overlaps, 1)).reshape(overlaps * hop_length)
         return window / denom[:window_length]
@@ -132,4 +137,3 @@ class ISTFT(torch.nn.Module):
             inverse_transform = inverse_transform[:, :, :length]
 
         return inverse_transform
-
