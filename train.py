@@ -150,7 +150,7 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
     with torch.no_grad():
         for batch in tqdm(validation_data):
             # prepare data
-            mixed, clean, _ = map(lambda x: x.to(device), batch)
+            mixed, clean, seq_len = map(lambda x: x.to(device), batch)
 
             mixed_stft = stft(mixed)
             mixed_r, mixed_i = mixed_stft[..., 0], mixed_stft[..., 1]
@@ -175,7 +175,9 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
             bs = mixed.shape[0]
 
             for i in range(bs):
-                total_pesq += pesq(clean[i].cpu(), output[i].cpu(), 16000)
+                total_pesq += pesq(clean[i].cpu()[0:seq_len[i]],
+                                   output[i].cpu()[0:seq_len[i]],
+                                   16000)
 
             # note keeping
             total_loss += loss.item()
@@ -267,7 +269,7 @@ def out_result(model, stft, istft, validation_data, device, opt):
     with torch.no_grad():
         for batch in tqdm(validation_data):
             # prepare data
-            mixed, clean, _ = map(lambda x: x.to(device), batch)
+            mixed, clean, seq_len = map(lambda x: x.to(device), batch)
 
             mixed_stft = stft(mixed)
             mixed_r, mixed_i = mixed_stft[..., 0], mixed_stft[..., 1]
@@ -285,15 +287,17 @@ def out_result(model, stft, istft, validation_data, device, opt):
             recombined = torch.cat([output_r, output_i], dim=-1)
             output = torch.squeeze(istft(recombined, mixed.shape[1]), dim=1)
 
+            ssnr = SNRCore(clean, output)
+
             bs = mixed.shape[0]
 
             for i in range(bs):
                 sf.write(
-                    'result/{count}_clean.wav'.format(count=count), clean[i].cpu(), 48000)
+                    'result/{count}_clean.wav'.format(count=count), clean[i].cpu()[0:seq_len[i]], 48000)
                 sf.write(
-                    'result/{count}_noisy.wav'.format(count=count), mixed[i].cpu(), 48000)
+                    'result/{count}_noisy.wav'.format(count=count), mixed[i].cpu()[0:seq_len[i]], 48000)
                 sf.write(
-                    'result/{count}_output.wav'.format(count=count), output[i].cpu(), 48000)
+                    'result/{count}_output_{ssnr}.wav'.format(count=count, ssnr=ssnr[i]), output[i].cpu()[0:seq_len[i]], 48000)
                 count += 1
 
 
