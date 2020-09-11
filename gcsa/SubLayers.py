@@ -86,8 +86,8 @@ class PositionwiseFeedForward(nn.Module):
         self.w_2i = nn.Linear(d_hid, d_in)  # position-wise
         self.layer_norm_r = nn.LayerNorm(d_in, eps=1e-6)
         self.layer_norm_i = nn.LayerNorm(d_in, eps=1e-6)
-        self.dropout_r = nn.Dropout(0.5)
-        self.dropout_i = nn.Dropout(0.5)
+        self.dropout_r = nn.Dropout(dropout)
+        self.dropout_i = nn.Dropout(dropout)
 
     def forward(self, x_r, x_i):
 
