@@ -96,7 +96,8 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
             mixed, clean, _ = map(lambda x: x.to(device), batch)
 
             mixed_stft = stft(mixed)
-            mixed_r, mixed_i = mixed_stft[..., 0], mixed_stft[..., 1]
+            mixed_r = mixed_stft[..., 0].abs()
+            mixed_i = mixed_stft[..., 1].abs()
 
             # forward
             optimizer.zero_grad()
@@ -153,7 +154,8 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
             mixed, clean, seq_len = map(lambda x: x.to(device), batch)
 
             mixed_stft = stft(mixed)
-            mixed_r, mixed_i = mixed_stft[..., 0], mixed_stft[..., 1]
+            mixed_r = mixed_stft[..., 0].abs()
+            mixed_i = mixed_stft[..., 1].abs()
 
             # forward
             mask_r, mask_i = model(
@@ -272,7 +274,8 @@ def out_result(model, stft, istft, validation_data, device, opt):
             mixed, clean, seq_len = map(lambda x: x.to(device), batch)
 
             mixed_stft = stft(mixed)
-            mixed_r, mixed_i = mixed_stft[..., 0], mixed_stft[..., 1]
+            mixed_r = mixed_stft[..., 0].abs()
+            mixed_i = mixed_stft[..., 1].abs()
 
             # forward
             mask_r, mask_i = model(
