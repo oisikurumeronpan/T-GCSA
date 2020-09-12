@@ -10,7 +10,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, models, transforms
-import soundfile as sf
+import librosa
 from scipy import signal
 import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
@@ -177,9 +177,12 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
             bs = mixed.shape[0]
 
             for i in range(bs):
-                total_pesq += pesq(clean[i].cpu()[0:seq_len[i]],
-                                   output[i].cpu()[0:seq_len[i]],
-                                   16000)
+                clean16 = librosa.resample(
+                    clean[i].cpu()[0:seq_len[i]], 48000, 16000)
+                output16 = librosa.resample(
+                    output[i].cpu()[0:seq_len[i]], 48000, 16000)
+
+                total_pesq += pesq(clean16, output16, 16000)
 
             # note keeping
             total_loss += loss.item()
@@ -295,11 +298,11 @@ def out_result(model, stft, istft, validation_data, device, opt):
             bs = mixed.shape[0]
 
             for i in range(bs):
-                sf.write(
+                librosa.output.write_wav(
                     'result/{count}_clean.wav'.format(count=count), clean[i].cpu()[0:seq_len[i]], 48000)
-                sf.write(
+                librosa.output.write_wav(
                     'result/{count}_noisy.wav'.format(count=count), mixed[i].cpu()[0:seq_len[i]], 48000)
-                sf.write(
+                librosa.output.write_wav(
                     'result/{count}_output_{ssnr}.wav'.format(count=count, ssnr=ssnr[i]), output[i].cpu()[0:seq_len[i]], 48000)
                 count += 1
 
