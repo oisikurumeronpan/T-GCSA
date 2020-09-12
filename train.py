@@ -178,9 +178,9 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
 
             for i in range(bs):
                 clean16 = librosa.resample(
-                    clean[i].cpu()[0:seq_len[i]], 48000, 16000)
+                    clean[i].cpu().detach().numpy().copy()[0:seq_len[i]], 48000, 16000)
                 output16 = librosa.resample(
-                    output[i].cpu()[0:seq_len[i]], 48000, 16000)
+                    output[i].cpu().detach().numpy().copy()[0:seq_len[i]], 48000, 16000)
 
                 total_pesq += pesq(clean16, output16, 16000)
 
