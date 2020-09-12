@@ -11,6 +11,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, models, transforms
 import librosa
+import soundfile as sf
 from scipy import signal
 import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
@@ -298,11 +299,11 @@ def out_result(model, stft, istft, validation_data, device, opt):
             bs = mixed.shape[0]
 
             for i in range(bs):
-                librosa.output.write_wav(
+                sf.write(
                     'result/{count}_clean.wav'.format(count=count), clean[i].cpu()[0:seq_len[i]], 48000)
-                librosa.output.write_wav(
+                sf.write(
                     'result/{count}_noisy.wav'.format(count=count), mixed[i].cpu()[0:seq_len[i]], 48000)
-                librosa.output.write_wav(
+                sf.write(
                     'result/{count}_output_{ssnr}.wav'.format(count=count, ssnr=ssnr[i]), output[i].cpu()[0:seq_len[i]], 48000)
                 count += 1
 
@@ -421,7 +422,7 @@ def main():
     #     2.0, opt.d_model, opt.n_warmup_steps
     # )
 
-    optimizer = optim.Adam(model.parameters(), lr=1e-5)
+    optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
     scheduler = ExponentialLR(optimizer, 0.95)
 
