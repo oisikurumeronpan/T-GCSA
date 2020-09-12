@@ -96,16 +96,16 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
             mixed, clean, _ = map(lambda x: x.to(device), batch)
 
             mixed_stft = stft(mixed)
-            mixed_r = mixed_stft[..., 0].abs()
-            mixed_i = mixed_stft[..., 1].abs()
+            mixed_r = mixed_stft[..., 0]
+            mixed_i = mixed_stft[..., 1]
 
             # forward
             optimizer.zero_grad()
             mask_r, mask_i = model(
                 mixed_r, mixed_i, calc_dwm(mixed_r.shape[2]).to(device))
 
-            output_r, output_i = mixed_r*mask_r - mixed_i * \
-                mask_i, mixed_r*mask_i + mixed_i*mask_r
+            output_r = mixed_r.abs()*mask_r - mixed_i.abs()*mask_i
+            output_i = mixed_r.abs()*mask_i + mixed_i.abs()*mask_r
 
             output_r = output_r.unsqueeze(-1)
             output_i = output_i.unsqueeze(-1)
@@ -154,15 +154,15 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
             mixed, clean, seq_len = map(lambda x: x.to(device), batch)
 
             mixed_stft = stft(mixed)
-            mixed_r = mixed_stft[..., 0].abs()
-            mixed_i = mixed_stft[..., 1].abs()
+            mixed_r = mixed_stft[..., 0]
+            mixed_i = mixed_stft[..., 1]
 
             # forward
             mask_r, mask_i = model(
                 mixed_r, mixed_i, calc_dwm(mixed_r.shape[2]).to(device))
 
-            output_r, output_i = mixed_r*mask_r - mixed_i * \
-                mask_i, mixed_r*mask_i + mixed_i*mask_r
+            output_r = mixed_r.abs()*mask_r - mixed_i.abs()*mask_i
+            output_i = mixed_r.abs()*mask_i + mixed_i.abs()*mask_r
 
             output_r = output_r.unsqueeze(-1)
             output_i = output_i.unsqueeze(-1)
@@ -274,15 +274,15 @@ def out_result(model, stft, istft, validation_data, device, opt):
             mixed, clean, seq_len = map(lambda x: x.to(device), batch)
 
             mixed_stft = stft(mixed)
-            mixed_r = mixed_stft[..., 0].abs()
-            mixed_i = mixed_stft[..., 1].abs()
+            mixed_r = mixed_stft[..., 0]
+            mixed_i = mixed_stft[..., 1]
 
             # forward
             mask_r, mask_i = model(
                 mixed_r, mixed_i, calc_dwm(mixed_r.shape[2]).to(device))
 
-            output_r, output_i = mixed_r*mask_r - mixed_i * \
-                mask_i, mixed_r*mask_i + mixed_i*mask_r
+            output_r = mixed_r.abs()*mask_r - mixed_i.abs()*mask_i
+            output_i = mixed_r.abs()*mask_i + mixed_i.abs()*mask_r
 
             output_r = output_r.unsqueeze(-1)
             output_i = output_i.unsqueeze(-1)
