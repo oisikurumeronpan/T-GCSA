@@ -426,7 +426,7 @@ def main():
     #     2.0, opt.d_model, opt.n_warmup_steps
     # )
 
-    optimizer = optim.Adam(model.parameters(), lr=1e-3)
+    optimizer = optim.Adam(model.parameters(), lr=1e-4)
 
     scheduler = ExponentialLR(optimizer, 0.95)
 
