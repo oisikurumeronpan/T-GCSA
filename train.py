@@ -148,6 +148,7 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
     total_loss = 0
     total_pesq = 0
     total_ssnr = 0
+    total_sdr = 0
 
     with torch.no_grad():
         for batch in tqdm(validation_data):
