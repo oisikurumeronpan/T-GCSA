@@ -173,6 +173,7 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
 
             # backward and update parameters
             loss = wSDRLoss(mixed, clean, output)
+            sdr = SDRLoss(clean, output)
             ssnr = SegSNR(clean, output)
 
             bs = mixed.shape[0]
@@ -188,8 +189,9 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
             # note keeping
             total_loss += loss.item()
             total_ssnr += ssnr.item()
+            total_sdr += sdr.item()
 
-    return total_loss, total_pesq, total_ssnr
+    return total_loss, total_pesq, total_ssnr, total_sdr
 
 
 def train(model, stft, istft, training_data, validation_data, optimizer, scheduler, device, opt):
@@ -229,14 +231,16 @@ def train(model, stft, istft, training_data, validation_data, optimizer, schedul
                            start)
 
         start = time.time()
-        valid_loss, total_pesq, valid_ssnr = eval_epoch(
+        valid_loss, total_pesq, valid_ssnr, valid_sdr = eval_epoch(
             model, stft, istft, validation_data, device, opt)
         print_performances('Validation',
                            valid_loss / validation_data.__len__(),
                            valid_ssnr / validation_data.__len__(),
                            start)
 
-        print('pesq: ', total_pesq)
+        print('pesq: {pesq}, sdr: {sdr}'.format(
+            pesq=total_pesq,
+            sdr=valid_sdr / validation_data.__len__()))
 
         valid_losses += [valid_loss]
 
