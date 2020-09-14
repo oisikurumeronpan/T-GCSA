@@ -10,6 +10,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, models, transforms
+import librosa
 import soundfile as sf
 from scipy import signal
 import matplotlib.pyplot as plt
@@ -44,10 +45,10 @@ def SegSNR(clean, est, eps=2e-7):
 
 def SDRLoss(clean, est, eps=2e-7):
     def bsum(x): return torch.sum(x, dim=1)
-    alpha = bsum(clean*est) / bsum(torch.abs(clean**2))
+    alpha = bsum(clean*est) / bsum(clean**2)
     alpha = alpha.unsqueeze(1)
-    a = bsum(torch.abs((alpha*clean)**2))
-    b = bsum(torch.abs((alpha*clean - est)**2))
+    a = bsum((alpha*clean)**2)
+    b = bsum((alpha*clean - est)**2)
 
     return torch.mean(10*torch.log10(a/b))
 
@@ -96,15 +97,16 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
             mixed, clean, _ = map(lambda x: x.to(device), batch)
 
             mixed_stft = stft(mixed)
-            mixed_r, mixed_i = mixed_stft[..., 0], mixed_stft[..., 1]
+            mixed_r = mixed_stft[..., 0]
+            mixed_i = mixed_stft[..., 1]
 
             # forward
             optimizer.zero_grad()
             mask_r, mask_i = model(
                 mixed_r, mixed_i, calc_dwm(mixed_r.shape[2]).to(device))
 
-            output_r, output_i = mixed_r*mask_r - mixed_i * \
-                mask_i, mixed_r*mask_i + mixed_i*mask_r
+            output_r = mixed_r.abs()*mask_r - mixed_i.abs()*mask_i
+            output_i = mixed_r.abs()*mask_i + mixed_i.abs()*mask_r
 
             output_r = output_r.unsqueeze(-1)
             output_i = output_i.unsqueeze(-1)
@@ -146,21 +148,23 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
     total_loss = 0
     total_pesq = 0
     total_ssnr = 0
+    total_sdr = 0
 
     with torch.no_grad():
         for batch in tqdm(validation_data):
             # prepare data
-            mixed, clean, _ = map(lambda x: x.to(device), batch)
+            mixed, clean, seq_len = map(lambda x: x.to(device), batch)
 
             mixed_stft = stft(mixed)
-            mixed_r, mixed_i = mixed_stft[..., 0], mixed_stft[..., 1]
+            mixed_r = mixed_stft[..., 0]
+            mixed_i = mixed_stft[..., 1]
 
             # forward
             mask_r, mask_i = model(
                 mixed_r, mixed_i, calc_dwm(mixed_r.shape[2]).to(device))
 
-            output_r, output_i = mixed_r*mask_r - mixed_i * \
-                mask_i, mixed_r*mask_i + mixed_i*mask_r
+            output_r = mixed_r.abs()*mask_r - mixed_i.abs()*mask_i
+            output_i = mixed_r.abs()*mask_i + mixed_i.abs()*mask_r
 
             output_r = output_r.unsqueeze(-1)
             output_i = output_i.unsqueeze(-1)
@@ -170,18 +174,25 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
 
             # backward and update parameters
             loss = wSDRLoss(mixed, clean, output)
+            sdr = SDRLoss(clean, output)
             ssnr = SegSNR(clean, output)
 
             bs = mixed.shape[0]
 
             for i in range(bs):
-                total_pesq += pesq(clean[i].cpu(), output[i].cpu(), 16000)
+                clean16 = librosa.resample(
+                    clean[i].cpu().detach().numpy().copy()[0:seq_len[i]], 48000, 16000)
+                output16 = librosa.resample(
+                    output[i].cpu().detach().numpy().copy()[0:seq_len[i]], 48000, 16000)
+
+                total_pesq += pesq(clean16, output16, 16000)
 
             # note keeping
             total_loss += loss.item()
-            total_ssnr += ssnr
+            total_ssnr += ssnr.item()
+            total_sdr += sdr.item()
 
-    return total_loss, total_pesq, total_ssnr
+    return total_loss, total_pesq, total_ssnr, total_sdr
 
 
 def train(model, stft, istft, training_data, validation_data, optimizer, scheduler, device, opt):
@@ -221,14 +232,16 @@ def train(model, stft, istft, training_data, validation_data, optimizer, schedul
                            start)
 
         start = time.time()
-        valid_loss, total_pesq, valid_ssnr = eval_epoch(
+        valid_loss, total_pesq, valid_ssnr, valid_sdr = eval_epoch(
             model, stft, istft, validation_data, device, opt)
         print_performances('Validation',
                            valid_loss / validation_data.__len__(),
                            valid_ssnr / validation_data.__len__(),
                            start)
 
-        print('pesq: ', total_pesq)
+        print('pesq: {pesq}, sdr: {sdr}'.format(
+            pesq=total_pesq,
+            sdr=valid_sdr / validation_data.__len__()))
 
         valid_losses += [valid_loss]
 
@@ -267,17 +280,18 @@ def out_result(model, stft, istft, validation_data, device, opt):
     with torch.no_grad():
         for batch in tqdm(validation_data):
             # prepare data
-            mixed, clean, _ = map(lambda x: x.to(device), batch)
+            mixed, clean, seq_len = map(lambda x: x.to(device), batch)
 
             mixed_stft = stft(mixed)
-            mixed_r, mixed_i = mixed_stft[..., 0], mixed_stft[..., 1]
+            mixed_r = mixed_stft[..., 0]
+            mixed_i = mixed_stft[..., 1]
 
             # forward
             mask_r, mask_i = model(
                 mixed_r, mixed_i, calc_dwm(mixed_r.shape[2]).to(device))
 
-            output_r, output_i = mixed_r*mask_r - mixed_i * \
-                mask_i, mixed_r*mask_i + mixed_i*mask_r
+            output_r = mixed_r.abs()*mask_r - mixed_i.abs()*mask_i
+            output_i = mixed_r.abs()*mask_i + mixed_i.abs()*mask_r
 
             output_r = output_r.unsqueeze(-1)
             output_i = output_i.unsqueeze(-1)
@@ -285,15 +299,17 @@ def out_result(model, stft, istft, validation_data, device, opt):
             recombined = torch.cat([output_r, output_i], dim=-1)
             output = torch.squeeze(istft(recombined, mixed.shape[1]), dim=1)
 
+            ssnr = SNRCore(clean, output)
+
             bs = mixed.shape[0]
 
             for i in range(bs):
                 sf.write(
-                    'result/{count}_clean.wav'.format(count=count), clean[i].cpu(), 48000)
+                    'result/{count}_clean.wav'.format(count=count), clean[i].cpu()[0:seq_len[i]], 48000)
                 sf.write(
-                    'result/{count}_noisy.wav'.format(count=count), mixed[i].cpu(), 48000)
+                    'result/{count}_noisy.wav'.format(count=count), mixed[i].cpu()[0:seq_len[i]], 48000)
                 sf.write(
-                    'result/{count}_output.wav'.format(count=count), output[i].cpu(), 48000)
+                    'result/{count}_output_{ssnr}.wav'.format(count=count, ssnr=ssnr[i]), output[i].cpu()[0:seq_len[i]], 48000)
                 count += 1
 
 
@@ -411,7 +427,7 @@ def main():
     #     2.0, opt.d_model, opt.n_warmup_steps
     # )
 
-    optimizer = optim.Adam(model.parameters(), lr=1e-5)
+    optimizer = optim.Adam(model.parameters(), lr=1e-4)
 
     scheduler = ExponentialLR(optimizer, 0.95)
 
