@@ -45,10 +45,10 @@ def SegSNR(clean, est, eps=2e-7):
 
 def SDRLoss(clean, est, eps=2e-7):
     def bsum(x): return torch.sum(x, dim=1)
-    alpha = bsum(clean*est) / bsum(torch.abs(clean**2))
+    alpha = bsum(clean*est) / bsum(clean**2)
     alpha = alpha.unsqueeze(1)
-    a = bsum(torch.abs((alpha*clean)**2))
-    b = bsum(torch.abs((alpha*clean - est)**2))
+    a = bsum((alpha*clean)**2)
+    b = bsum((alpha*clean - est)**2)
 
     return torch.mean(10*torch.log10(a/b))
 
