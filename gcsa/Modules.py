@@ -20,13 +20,13 @@ class ScaledDotProductAttention(nn.Module):
 
     def forward(self, q_r, q_i, k_r, k_i, v_r, v_i, dwm):
 
-        # attn_r = torch.matmul(q_r / self.temperature, k_r.transpose(2, 3)) + \
-        #     torch.matmul(q_i / self.temperature, k_i.transpose(2, 3))
-        # attn_i = torch.matmul(q_i / self.temperature, k_r.transpose(2, 3)) - \
-        #     torch.matmul(q_r / self.temperature, k_i.transpose(2, 3))
+        attn_r = torch.matmul(q_r / self.temperature, k_r.transpose(2, 3)) + \
+            torch.matmul(q_i / self.temperature, k_i.transpose(2, 3))
+        attn_i = torch.matmul(q_i / self.temperature, k_r.transpose(2, 3)) - \
+            torch.matmul(q_r / self.temperature, k_i.transpose(2, 3))
 
-        attn_r = torch.matmul(q_r / self.temperature, k_r.transpose(2, 3))
-        attn_i = torch.matmul(q_i / self.temperature, k_i.transpose(2, 3))
+        # attn_r = torch.matmul(q_r / self.temperature, k_r.transpose(2, 3))
+        # attn_i = torch.matmul(q_i / self.temperature, k_i.transpose(2, 3))
 
         g = torch.exp(dwm / (self.sigma ** 2))
 

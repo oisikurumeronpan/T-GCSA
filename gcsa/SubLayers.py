@@ -91,10 +91,16 @@ class PositionwiseFeedForward(nn.Module):
 
     def forward(self, x_r, x_i):
 
-        x_r1 = F.relu(self.w_1r(x_r) - self.w_1i(x_i))
-        x_i1 = F.relu(self.w_1i(x_r) + self.w_1r(x_i))
-        x_r2 = self.dropout_r(self.w_2r(x_r1) - self.w_2i(x_i1))
-        x_i2 = self.dropout_i(self.w_2i(x_r1) + self.w_2r(x_i1))
+        # x_r1 = F.relu(self.w_1r(x_r) - self.w_1i(x_i))
+        # x_i1 = F.relu(self.w_1i(x_r) + self.w_1r(x_i))
+        # x_r2 = self.dropout_r(self.w_2r(x_r1) - self.w_2i(x_i1))
+        # x_i2 = self.dropout_i(self.w_2i(x_r1) + self.w_2r(x_i1))
+
+        x_r1 = F.relu(self.w_1r(x_r))
+        x_r2 = F.relu(self.w_1i(x_i))
+        x_r2 = self.dropout_r(self.w_2r(x_r1))
+        x_i2 = self.dropout_i(self.w_2i(x_r1))
+        
         x_r2 += x_r
         x_i2 += x_i
 
