@@ -309,8 +309,20 @@ def main():
                                              length=length,
                                              window=window)
 
-    result = prediction(model, stft, istft, data_loader, device, checkpoint['settings'])
-    print(result)
+    def print_performances(header, loss, ssnr):
+        print('  - {header:12} loss: {loss: 8.5f},'
+              'ssnr: {ssnr}'.format(
+                  header=f"({header})", loss=loss, ssnr=ssnr))
+
+    valid_loss, total_pesq, valid_ssnr, valid_sdr = prediction(model, stft, istft, data_loader, device, checkpoint['settings'])
+    print_performances('Validation',
+                           valid_loss / data_loader.__len__(),
+                           valid_ssnr / data_loader.__len__(),
+                           )
+
+    print('pesq: {pesq}, sdr: {sdr}'.format(
+        pesq=total_pesq,
+        sdr=valid_sdr / data_loader.__len__()))
 
 if __name__ == '__main__':
     main()
