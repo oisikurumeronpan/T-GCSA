@@ -272,6 +272,7 @@ def main():
     parser.add_argument('-model_path', type=str, required=True)
     parser.add_argument('-clean_path', type=str, required=True)
     parser.add_argument('-noisy_path', type=str, required=True)
+    parser.add_argument('-no_cuda', action='store_true')
 
     opt = parser.parse_args()
     opt.cuda = not opt.no_cuda
