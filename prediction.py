@@ -276,7 +276,6 @@ def main():
 
     opt = parser.parse_args()
     opt.cuda = not opt.no_cuda
-    opt.d_word_vec = opt.d_model
 
     device = torch.device('cuda' if opt.cuda else 'cpu')
 
@@ -285,6 +284,8 @@ def main():
     checkpoint = torch.load(opt.model_path)
 
     dataset = AudioDataset(opt.clean_path, opt.noisy_path, max_length=400000)
+
+    opt.d_word_vec = checkpoint['settings'].d_model
 
     model = Transformer(
         emb_src_trg_weight_sharing=checkpoint['settings'].embs_share_weight,
