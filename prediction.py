@@ -284,6 +284,8 @@ def main():
     checkpoint = torch.load(opt.model_path)
 
     dataset = AudioDataset(opt.clean_path, opt.noisy_path, max_length=400000)
+    data_loader = DataLoader(dataset=dataset, batch_size=checkpoint['settings'].batch_size,
+                                  collate_fn=dataset.collate, shuffle=False, num_workers=0)
 
     opt.d_word_vec = checkpoint['settings'].d_model
 
@@ -307,7 +309,7 @@ def main():
                                              length=length,
                                              window=window)
 
-    result = prediction(model, stft, istft, dataset, device, checkpoint['settings'])
+    result = prediction(model, stft, istft, data_loader, device, checkpoint['settings'])
     print(result)
 
 if __name__ == '__main__':
