@@ -300,6 +300,8 @@ def main():
         dropout=checkpoint['settings'].dropout
     ).to(device)
 
+    model.load_state_dict(checkpoint['model'])
+
     window = torch.hann_window(checkpoint['settings'].n_fft).to(device)
     def stft(x): return torch.stft(x, checkpoint['settings'].n_fft, checkpoint['settings'].hop_length, window=window)
 
