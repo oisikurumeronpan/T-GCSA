@@ -409,9 +409,9 @@ def main():
 
     
     train_data_loader = DataLoader(dataset=train_dataset, batch_size=opt.batch_size,
-                                   collate_fn=train_dataset.collate, shuffle=True, num_workers=0)
+                                   collate_fn=trainval_dataset.collate, shuffle=True, num_workers=0)
     val_data_loader = DataLoader(dataset=val_dataset, batch_size=opt.batch_size,
-                                   collate_fn=train_dataset.collate, shuffle=False, num_workers=0)
+                                   collate_fn=trainval_dataset.collate, shuffle=False, num_workers=0)
     test_data_loader = DataLoader(dataset=test_dataset, batch_size=opt.batch_size,
                                   collate_fn=test_dataset.collate, shuffle=False, num_workers=0)
 
