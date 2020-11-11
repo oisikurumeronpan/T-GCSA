@@ -241,7 +241,7 @@ def train(model, stft, istft, training_data, validation_data, optimizer, schedul
                            start)
 
         print('pesq: {pesq}, sdr: {sdr}'.format(
-            pesq=total_pesq,
+            pesq=total_pesq / len(validation_data.dataset),
             sdr=valid_sdr / validation_data.__len__()))
 
         valid_losses += [valid_loss]
