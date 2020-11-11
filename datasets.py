@@ -5,6 +5,7 @@ import os
 import csv
 import torch
 from torch.utils import data
+import random
 
 # Reference
 # DATA LOADING - LOAD FILE LISTS
@@ -45,8 +46,9 @@ def load_data(dataset, max_length):
             in_shape = np.shape(inputData)
             if max_length is not None:
                 if (in_shape[0] > max_length):
-                    inputData = inputData[0:max_length]
-                    outputData = outputData[0:max_length]
+                    start = random.randint(0, in_shape[0]-max_length)
+                    inputData = inputData[start: start + max_length]
+                    outputData = outputData[start: start + max_length]
 
             dataset['inaudio'][id] = np.float32(inputData)
             dataset['outaudio'][id] = np.float32(outputData)
