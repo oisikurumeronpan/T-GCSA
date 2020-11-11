@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from torch.utils import data
 from torchvision import datasets, models, transforms
 import librosa
 import soundfile as sf
@@ -395,12 +396,22 @@ def main():
 
     #========= Loading Dataset =========#
 
-    train_dataset = AudioDataset(
+    trainval_dataset = AudioDataset(
         clean_path=opt.train_path_clean, noisy_path=opt.train_path_noisy, max_length=opt.train_length)
+
+    n_samples = len(trainval_dataset) # n_samples is 60000
+    train_size = int(len(trainval_dataset) * 0.8) # train_size is 48000
+    val_size = n_samples - train_size # val_size is 48000
+
+    train_dataset, val_dataset = data.random_split(trainval_dataset, [train_size, val_size])
     test_dataset = AudioDataset(
         clean_path=opt.val_path_clean, noisy_path=opt.val_path_noisy, max_length=opt.val_length)
+
+    
     train_data_loader = DataLoader(dataset=train_dataset, batch_size=opt.batch_size,
                                    collate_fn=train_dataset.collate, shuffle=True, num_workers=0)
+    val_data_loader = DataLoader(dataset=val_dataset, batch_size=opt.batch_size,
+                                   collate_fn=train_dataset.collate, shuffle=False, num_workers=0)
     test_data_loader = DataLoader(dataset=test_dataset, batch_size=opt.batch_size,
                                   collate_fn=test_dataset.collate, shuffle=False, num_workers=0)
 
@@ -439,7 +450,7 @@ def main():
         stft=stft,
         istft=istft,
         training_data=train_data_loader,
-        validation_data=test_data_loader,
+        validation_data=val_data_loader,
         optimizer=optimizer,
         scheduler=scheduler,
         device=device,
