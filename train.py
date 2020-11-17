@@ -121,6 +121,9 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
             mixed_r = mixed_stft[..., 0]
             mixed_i = mixed_stft[..., 1]
 
+
+            print(mixed_r.shape)
+
             forward = calc_forward_transform_array(f_len=mixed_r.shape[1],
                                                    t_len=mixed_r.shape[2],
                                                    sr=4800,
@@ -347,7 +350,6 @@ def out_result(model, stft, istft, validation_data, device, opt):
             mixed_r = mixed_stft[..., 0]
             mixed_i = mixed_stft[..., 1]
 
-            print(mixed_r.shape)
 
             forward = calc_forward_transform_array(f_len=mixed_r.shape[1],
                                                    t_len=mixed_r.shape[2],
