@@ -126,14 +126,14 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
 
             forward = calc_forward_transform_array(f_len=mixed_r.shape[1],
                                                    t_len=mixed_r.shape[2],
-                                                   sr=4800,
+                                                   sr=48000,
                                                    n_fft=opt.n_fft,
                                                    hop_length=opt.hop_length,
                                                    win_length=opt.n_fft)
 
             inverse = calc_inverse_transform_array(f_len=mixed_r.shape[1],
                                                    t_len=mixed_r.shape[2],
-                                                   sr=4800,
+                                                   sr=48000,
                                                    n_fft=opt.n_fft,
                                                    hop_length=opt.hop_length,
                                                    win_length=opt.n_fft)
@@ -205,14 +205,14 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
 
             forward = calc_forward_transform_array(f_len=mixed_r.shape[1],
                                                    t_len=mixed_r.shape[2],
-                                                   sr=4800,
+                                                   sr=48000,
                                                    n_fft=opt.n_fft,
                                                    hop_length=opt.hop_length,
                                                    win_length=opt.n_fft)
 
             inverse = calc_inverse_transform_array(f_len=mixed_r.shape[1],
                                                    t_len=mixed_r.shape[2],
-                                                   sr=4800,
+                                                   sr=48000,
                                                    n_fft=opt.n_fft,
                                                    hop_length=opt.hop_length,
                                                    win_length=opt.n_fft)
@@ -353,14 +353,14 @@ def out_result(model, stft, istft, validation_data, device, opt):
 
             forward = calc_forward_transform_array(f_len=mixed_r.shape[1],
                                                    t_len=mixed_r.shape[2],
-                                                   sr=4800,
+                                                   sr=48000,
                                                    n_fft=opt.n_fft,
                                                    hop_length=opt.hop_length,
                                                    win_length=opt.n_fft)
 
             inverse = calc_inverse_transform_array(f_len=mixed_r.shape[1],
                                                    t_len=mixed_r.shape[2],
-                                                   sr=4800,
+                                                   sr=48000,
                                                    n_fft=opt.n_fft,
                                                    hop_length=opt.hop_length,
                                                    win_length=opt.n_fft)
