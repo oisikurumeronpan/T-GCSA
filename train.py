@@ -84,25 +84,25 @@ def calc_dwm(dim):
             mat[i, j] = - (i - j) ** 2
     return torch.Tensor(mat)
 
-def calc_forward_transform_array(shape, sr, n_fft, hop_length, win_length):
+def calc_forward_transform_array(f_len, t_len, sr, n_fft, hop_length, win_length):
     f = librosa.fft_frequencies(sr, 2048)
-    t = librosa.frames_to_time(range(shape[1]), sr)
+    t = librosa.frames_to_time(t_len, sr)
 
     def calc_arg(m, n):
         comp = cmath.exp(2j*cmath.pi*f[m]*t[n]/win_length)
         return [comp.real, comp.imag]
     
-    return torch.Tensor([[calc_arg(m,n) for n in range(shape[1])] for m in range(shape[0])])
+    return torch.Tensor([[calc_arg(m,n) for n in range(t_len)] for m in range(f_len)])
 
-def calc_inverse_transform_array(shape, sr, n_fft, hop_length, win_length):
+def calc_inverse_transform_array(f_len, t_len, sr, n_fft, hop_length, win_length):
     f = librosa.fft_frequencies(sr, n_fft)
-    t = librosa.frames_to_time(range(shape[1]), sr)
+    t = librosa.frames_to_time(range(t_len), sr)
 
     def calc_arg(m, n):
         comp = cmath.exp(-2j*cmath.pi*f[m]*t[n]/win_length)
         return [comp.real, comp.imag]
     
-    return torch.Tensor([[calc_arg(m,n) for n in range(shape[1])] for m in range(shape[0])])
+    return torch.Tensor([[calc_arg(m,n) for n in range(t_len)] for m in range(f_len)])
 
 
 def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoothing):
@@ -121,13 +121,15 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
             mixed_r = mixed_stft[..., 0]
             mixed_i = mixed_stft[..., 1]
 
-            forward = calc_forward_transform_array(shape=[mixed_r[1,2]],
+            forward = calc_forward_transform_array(f_len=mixed_r.shape[1],
+                                                   t_len=mixed_r.shape[2],
                                                    sr=4800,
                                                    n_fft=opt.n_fft,
                                                    hop_length=opt.hop_length,
                                                    win_length=opt.n_fft)
 
-            inverse = calc_inverse_transform_array(shape=[mixed_r[1,2]],
+            inverse = calc_inverse_transform_array(f_len=mixed_r.shape[1],
+                                                   t_len=mixed_r.shape[2],
                                                    sr=4800,
                                                    n_fft=opt.n_fft,
                                                    hop_length=opt.hop_length,
@@ -198,13 +200,15 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
             mixed_r = mixed_stft[..., 0]
             mixed_i = mixed_stft[..., 1]
 
-            forward = calc_forward_transform_array(shape=[mixed_r[1,2]],
+            forward = calc_forward_transform_array(f_len=mixed_r.shape[1],
+                                                   t_len=mixed_r.shape[2],
                                                    sr=4800,
                                                    n_fft=opt.n_fft,
                                                    hop_length=opt.hop_length,
                                                    win_length=opt.n_fft)
 
-            inverse = calc_inverse_transform_array(shape=[mixed_r[1,2]],
+            inverse = calc_inverse_transform_array(f_len=mixed_r.shape[1],
+                                                   t_len=mixed_r.shape[2],
                                                    sr=4800,
                                                    n_fft=opt.n_fft,
                                                    hop_length=opt.hop_length,
@@ -343,13 +347,15 @@ def out_result(model, stft, istft, validation_data, device, opt):
             mixed_r = mixed_stft[..., 0]
             mixed_i = mixed_stft[..., 1]
 
-            forward = calc_forward_transform_array(shape=[mixed_r[1,2]],
+            forward = calc_forward_transform_array(f_len=mixed_r.shape[1],
+                                                   t_len=mixed_r.shape[2],
                                                    sr=4800,
                                                    n_fft=opt.n_fft,
                                                    hop_length=opt.hop_length,
                                                    win_length=opt.n_fft)
 
-            inverse = calc_inverse_transform_array(shape=[mixed_r[1,2]],
+            inverse = calc_inverse_transform_array(f_len=mixed_r.shape[1],
+                                                   t_len=mixed_r.shape[2],
                                                    sr=4800,
                                                    n_fft=opt.n_fft,
                                                    hop_length=opt.hop_length,
