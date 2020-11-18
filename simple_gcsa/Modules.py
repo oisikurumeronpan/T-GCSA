@@ -26,7 +26,7 @@ class ScaledDotProductAttention(nn.Module):
         g = torch.exp(dwm / (self.sigma ** 2))
 
         attn_r = torch.abs(attn_r * g)
-        attn_i = torch.abs(attn_i)
+        attn_i = torch.abs(attn_i * g)
 
         attn_r = self.dropout_r(F.softmax(attn_r, dim=-1))
         attn_i = self.dropout_i(F.softmax(attn_i, dim=-1))
