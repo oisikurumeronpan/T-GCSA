@@ -85,7 +85,7 @@ def calc_dwm(dim):
     return torch.Tensor(mat)
 
 def calc_forward_transform_array(f_len, t_len, sr, n_fft, hop_length, win_length):
-    f = librosa.fft_frequencies(sr, 2048)
+    f = librosa.fft_frequencies(sr, n_fft)
     t = librosa.frames_to_time(t_len, sr)
 
     def calc_arg(m, n):
