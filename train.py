@@ -126,14 +126,14 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
                                                    sr=48000,
                                                    n_fft=opt.n_fft,
                                                    hop_length=opt.hop_length,
-                                                   win_length=opt.n_fft)
+                                                   win_length=opt.n_fft).to(device)
 
             inverse = calc_inverse_transform_array(f_len=mixed_r.shape[1],
                                                    t_len=mixed_r.shape[2],
                                                    sr=48000,
                                                    n_fft=opt.n_fft,
                                                    hop_length=opt.hop_length,
-                                                   win_length=opt.n_fft)
+                                                   win_length=opt.n_fft).to(device)
 
             mixed_r = mixed_r*forward[...,0] - mixed_i*forward[...,1]
             mixed_i = mixed_r*forward[...,1] + forward[...,0]*mixed_i
@@ -205,14 +205,14 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
                                                    sr=48000,
                                                    n_fft=opt.n_fft,
                                                    hop_length=opt.hop_length,
-                                                   win_length=opt.n_fft)
+                                                   win_length=opt.n_fft).to(device)
 
             inverse = calc_inverse_transform_array(f_len=mixed_r.shape[1],
                                                    t_len=mixed_r.shape[2],
                                                    sr=48000,
                                                    n_fft=opt.n_fft,
                                                    hop_length=opt.hop_length,
-                                                   win_length=opt.n_fft)
+                                                   win_length=opt.n_fft).to(device)
 
             mixed_r = mixed_r*forward[...,0] - mixed_i*forward[...,1]
             mixed_i = mixed_r*forward[...,1] + forward[...,0]*mixed_i
@@ -353,14 +353,14 @@ def out_result(model, stft, istft, validation_data, device, opt):
                                                    sr=48000,
                                                    n_fft=opt.n_fft,
                                                    hop_length=opt.hop_length,
-                                                   win_length=opt.n_fft)
+                                                   win_length=opt.n_fft).to(device)
 
             inverse = calc_inverse_transform_array(f_len=mixed_r.shape[1],
                                                    t_len=mixed_r.shape[2],
                                                    sr=48000,
                                                    n_fft=opt.n_fft,
                                                    hop_length=opt.hop_length,
-                                                   win_length=opt.n_fft)
+                                                   win_length=opt.n_fft).to(device)
 
             mixed_r = mixed_r*forward[...,0] - mixed_i*forward[...,1]
             mixed_i = mixed_r*forward[...,1] + forward[...,0]*mixed_i
