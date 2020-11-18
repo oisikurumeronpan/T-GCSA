@@ -86,7 +86,7 @@ def calc_dwm(dim):
 
 def calc_forward_transform_array(f_len, t_len, sr, n_fft, hop_length, win_length):
     f = librosa.fft_frequencies(sr, n_fft)
-    t = librosa.frames_to_time(t_len, sr)
+    t = librosa.frames_to_time(range(t_len), sr)
 
     def calc_arg(m, n):
         comp = cmath.exp(2j*cmath.pi*f[m]*t[n]/win_length)
