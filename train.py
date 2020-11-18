@@ -16,7 +16,7 @@ from scipy import signal
 import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from datasets import AudioDataset
-from gcsa.Models import Transformer, ISTFT
+from simple_gcsa.Models import Transformer, ISTFT
 # from gcsa.Optim import ScheduledOptim
 from torch.optim.lr_scheduler import ExponentialLR
 from collections import OrderedDict
