@@ -189,8 +189,8 @@ def out_result(model, stft, istft, validation_data, device, opt):
             mask_r, mask_i = model(
                 mixed_r, mixed_i, calc_dwm(mixed_r.shape[2]).to(device))
 
-            output_r = mixed_r.abs()*mask_r - mixed_i.abs()*mask_i
-            output_i = mixed_r.abs()*mask_i + mixed_i.abs()*mask_r
+            output_r = mixed_r*mask_r - mixed_i*mask_i
+            output_i = mixed_r*mask_i + mixed_i*mask_r
 
             output_r = output_r.unsqueeze(-1)
             output_i = output_i.unsqueeze(-1)
@@ -232,8 +232,8 @@ def prediction(model, stft, istft, dataset, device, opt):
             mask_r, mask_i = model(
                 mixed_r, mixed_i, calc_dwm(mixed_r.shape[2]).to(device))
 
-            output_r = mixed_r.abs()*mask_r - mixed_i.abs()*mask_i
-            output_i = mixed_r.abs()*mask_i + mixed_i.abs()*mask_r
+            output_r = mixed_r*mask_r - mixed_i*mask_i
+            output_i = mixed_r*mask_i + mixed_i*mask_r
 
             output_r = output_r.unsqueeze(-1)
             output_i = output_i.unsqueeze(-1)
