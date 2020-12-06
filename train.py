@@ -353,8 +353,10 @@ def main():
     # all-in-1 data pickle or bpe field
     parser.add_argument('-data_pkl', default=None)
 
-    parser.add_argument('-train_path', default=None)   # bpe encoded data
-    parser.add_argument('-val_path', default=None)     # bpe encoded data
+    parser.add_argument('-train_path_clean', default=None)   # bpe encoded data
+    parser.add_argument('-val_path_clean', default=None)     # bpe encoded data
+    parser.add_argument('-train_path_noisy', default=None)   # bpe encoded data
+    parser.add_argument('-val_path_noisy', default=None)     # bpe encoded data
 
     parser.add_argument('-epoch', type=int, default=10)
     parser.add_argument('-b', '--batch_size', type=int, default=12)
@@ -394,8 +396,8 @@ def main():
     #========= Loading Dataset =========#
 
     train_dataset = AudioDataset(
-        path=opt.train_path, max_length=opt.train_length)
-    test_dataset = AudioDataset(path=opt.val_path, max_length=opt.val_length)
+        clean_path=opt.train_path_clean, noisy_path=opt.train_path_noisy, max_length=opt.train_length)
+    test_dataset = AudioDataset(clean_path=opt.val_path_clean, noisy_path=opt.val_path_noisy, max_length=opt.val_length)
     train_data_loader = DataLoader(dataset=train_dataset, batch_size=opt.batch_size,
                                    collate_fn=train_dataset.collate, shuffle=True, num_workers=0)
     test_data_loader = DataLoader(dataset=test_dataset, batch_size=opt.batch_size,
