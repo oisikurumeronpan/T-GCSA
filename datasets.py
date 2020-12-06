@@ -23,7 +23,7 @@ def load_data_list(clean_path, noisy_path):
     filelist = [f for f in filelist if f.endswith(".wav")]
     for i in tqdm(filelist):
         dataset['innames'].append("%s/%s" % (clean_path, i))
-        dataset['outnames'].append("%s_clean/%s" % (noisy_path, i))
+        dataset['outnames'].append("%s/%s" % (noisy_path, i))
         dataset['shortnames'].append("%s" % (i))
 
     return dataset
