@@ -10,11 +10,10 @@ from torch.utils import data
 # DATA LOADING - LOAD FILE LISTS
 
 
-def load_data_list(folder='./dataset', setname='train'):
-    assert(setname in ['train', 'val'])
+def load_data_list(path):
 
     dataset = {}
-    foldername = folder + '/' + setname + 'set'
+    foldername = path
 
     print("Loading files...")
     dataset['innames'] = []
@@ -61,8 +60,8 @@ class AudioDataset(data.Dataset):
     Audio sample reader.
     """
 
-    def __init__(self, data_type, max_length=None):
-        dataset = load_data_list(setname=data_type)
+    def __init__(self, path, max_length=None):
+        dataset = load_data_list(path)
         self.dataset = load_data(dataset, max_length)
 
         self.file_names = dataset['innames']
