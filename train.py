@@ -386,6 +386,8 @@ def main():
     parser.add_argument('-hop_length', type=int, default=512)
     parser.add_argument('-train_length', type=int, default=120000)
     parser.add_argument('-val_length', type=int, default=400000)
+    
+    parser.add_argument('-model_path', type=str)
 
     opt = parser.parse_args()
     opt.cuda = not opt.no_cuda
@@ -413,6 +415,11 @@ def main():
         n_head=opt.n_head,
         dropout=opt.dropout
     ).to(device)
+
+    if (opt.model_path):
+        checkpoint = torch.load(opt.model_path)
+        model.load_state_dict(checkpoint['model'])
+    
 
     window = torch.hann_window(opt.n_fft).to(device)
     def stft(x): return torch.stft(x, opt.n_fft, opt.hop_length, window=window)
