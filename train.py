@@ -105,8 +105,8 @@ def train_epoch(model, stft, istft, training_data, optimizer, opt, device, smoot
             mask_r, mask_i = model(
                 mixed_r, mixed_i, calc_dwm(mixed_r.shape[2]).to(device))
 
-            output_r = mixed_r.abs()*mask_r - mixed_i.abs()*mask_i
-            output_i = mixed_r.abs()*mask_i + mixed_i.abs()*mask_r
+            output_r = mixed_r*mask_r - mixed_i*mask_i
+            output_i = mixed_r*mask_i + mixed_i*mask_r
 
             output_r = output_r.unsqueeze(-1)
             output_i = output_i.unsqueeze(-1)
@@ -163,8 +163,8 @@ def eval_epoch(model, stft, istft, validation_data, device, opt):
             mask_r, mask_i = model(
                 mixed_r, mixed_i, calc_dwm(mixed_r.shape[2]).to(device))
 
-            output_r = mixed_r.abs()*mask_r - mixed_i.abs()*mask_i
-            output_i = mixed_r.abs()*mask_i + mixed_i.abs()*mask_r
+            output_r = mixed_r*mask_r - mixed_i*mask_i
+            output_i = mixed_r*mask_i + mixed_i*mask_r
 
             output_r = output_r.unsqueeze(-1)
             output_i = output_i.unsqueeze(-1)
@@ -290,8 +290,8 @@ def out_result(model, stft, istft, validation_data, device, opt):
             mask_r, mask_i = model(
                 mixed_r, mixed_i, calc_dwm(mixed_r.shape[2]).to(device))
 
-            output_r = mixed_r.abs()*mask_r - mixed_i.abs()*mask_i
-            output_i = mixed_r.abs()*mask_i + mixed_i.abs()*mask_r
+            output_r = mixed_r*mask_r - mixed_i*mask_i
+            output_i = mixed_r*mask_i + mixed_i*mask_r
 
             output_r = output_r.unsqueeze(-1)
             output_i = output_i.unsqueeze(-1)
@@ -353,8 +353,10 @@ def main():
     # all-in-1 data pickle or bpe field
     parser.add_argument('-data_pkl', default=None)
 
-    parser.add_argument('-train_path', default=None)   # bpe encoded data
-    parser.add_argument('-val_path', default=None)     # bpe encoded data
+    parser.add_argument('-train_path_clean', default=None)   # bpe encoded data
+    parser.add_argument('-val_path_clean', default=None)     # bpe encoded data
+    parser.add_argument('-train_path_noisy', default=None)   # bpe encoded data
+    parser.add_argument('-val_path_noisy', default=None)     # bpe encoded data
 
     parser.add_argument('-epoch', type=int, default=10)
     parser.add_argument('-b', '--batch_size', type=int, default=12)
@@ -384,6 +386,8 @@ def main():
     parser.add_argument('-hop_length', type=int, default=512)
     parser.add_argument('-train_length', type=int, default=120000)
     parser.add_argument('-val_length', type=int, default=400000)
+    
+    parser.add_argument('-model_path', type=str)
 
     opt = parser.parse_args()
     opt.cuda = not opt.no_cuda
@@ -394,8 +398,8 @@ def main():
     #========= Loading Dataset =========#
 
     train_dataset = AudioDataset(
-        data_type='train', max_length=opt.train_length)
-    test_dataset = AudioDataset(data_type='val', max_length=opt.val_length)
+        clean_path=opt.train_path_clean, noisy_path=opt.train_path_noisy, max_length=opt.train_length)
+    test_dataset = AudioDataset(clean_path=opt.val_path_clean, noisy_path=opt.val_path_noisy, max_length=opt.val_length)
     train_data_loader = DataLoader(dataset=train_dataset, batch_size=opt.batch_size,
                                    collate_fn=train_dataset.collate, shuffle=True, num_workers=0)
     test_data_loader = DataLoader(dataset=test_dataset, batch_size=opt.batch_size,
@@ -411,6 +415,11 @@ def main():
         n_head=opt.n_head,
         dropout=opt.dropout
     ).to(device)
+
+    if (opt.model_path):
+        checkpoint = torch.load(opt.model_path)
+        model.load_state_dict(checkpoint['model'])
+    
 
     window = torch.hann_window(opt.n_fft).to(device)
     def stft(x): return torch.stft(x, opt.n_fft, opt.hop_length, window=window)

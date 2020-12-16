@@ -10,22 +10,20 @@ from torch.utils import data
 # DATA LOADING - LOAD FILE LISTS
 
 
-def load_data_list(folder='./dataset', setname='train'):
-    assert(setname in ['train', 'val'])
+def load_data_list(clean_path, noisy_path):
 
     dataset = {}
-    foldername = folder + '/' + setname + 'set'
 
     print("Loading files...")
     dataset['innames'] = []
     dataset['outnames'] = []
     dataset['shortnames'] = []
 
-    filelist = os.listdir("%s_noisy" % (foldername))
+    filelist = os.listdir(noisy_path)
     filelist = [f for f in filelist if f.endswith(".wav")]
     for i in tqdm(filelist):
-        dataset['innames'].append("%s_noisy/%s" % (foldername, i))
-        dataset['outnames'].append("%s_clean/%s" % (foldername, i))
+        dataset['innames'].append("%s/%s" % (noisy_path, i))
+        dataset['outnames'].append("%s/%s" % (clean_path, i))
         dataset['shortnames'].append("%s" % (i))
 
     return dataset
@@ -61,8 +59,8 @@ class AudioDataset(data.Dataset):
     Audio sample reader.
     """
 
-    def __init__(self, data_type, max_length=None):
-        dataset = load_data_list(setname=data_type)
+    def __init__(self, clean_path, noisy_path, max_length=None):
+        dataset = load_data_list(clean_path, noisy_path)
         self.dataset = load_data(dataset, max_length)
 
         self.file_names = dataset['innames']
