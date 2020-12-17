@@ -32,7 +32,11 @@ class ScaledDotProductAttention(nn.Module):
 
         attn_r = self.dropout_r(F.softmax(attn_r, dim=-1))
         attn_i = self.dropout_i(F.softmax(attn_i, dim=-1))
-        output_r, output_i = torch.matmul(
-            attn_r, v_r), torch.matmul(attn_i, v_i)
+        # output_r, output_i = torch.matmul(
+        #     attn_r, v_r), torch.matmul(attn_i, v_i)
+
+        output_r = torch.matmul(attn_r, v_r) - torch.matmul(attn_i, v_i)
+        output_i = torch.matmul(attn_i, v_r) + torch.matmul(attn_r, v_i)
+
 
         return output_r, output_i, attn_r, attn_i
